@@ -53,7 +53,8 @@ class CodexProvider:
                 "features.prefer_mxc=true",
                 'windows.sandbox="elevated"',
                 'default_permissions="office"',
-                'permissions.office.filesystem={":root"="deny",":minimal"="read",":workspace_roots"={"."="read"}}',
+                # Elevated Windows sandbox requires root read access to initialize.
+                'permissions.office.filesystem={":root"="read",":minimal"="read",":workspace_roots"={"."="read"}}',
                 "permissions.office.network.enabled=false",
                 "features.shell_tool=false",
                 "features.apply_patch_freeform=false",

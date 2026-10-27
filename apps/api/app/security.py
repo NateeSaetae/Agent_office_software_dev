@@ -103,6 +103,19 @@ def files(root: Path) -> list[str]:
     return result
 
 
+def qa_artifact_path(relative: str) -> bool:
+    """Allow tests and named QA documents, including nested project folders."""
+    path = Path(relative)
+    name = path.name.lower()
+    return (
+        any(part in {"tests", "__tests__"} for part in path.parts[:-1])
+        or name.startswith("test_")
+        or ".test." in name
+        or ".spec." in name
+        or name in {"qa.md", "testing.md", "test-plan.md", "test-results.md", "qa-report.md"}
+    )
+
+
 def devops_config_path(relative: str) -> bool:
     """DevOps may prepare local build/run configuration, never containers."""
     path = Path(relative)
@@ -116,7 +129,10 @@ def devops_config_path(relative: str) -> bool:
         "pyproject.toml", "requirements.txt", "requirements-dev.txt",
         "tsconfig.json", "tsconfig.app.json", "tsconfig.node.json",
         "vite.config.ts", "vite.config.js", "vitest.config.ts", "vitest.config.js",
-        ".nvmrc", ".node-version", "makefile", "readme.md"
+        "vite.config.mjs", "vite.config.mts", "vite.config.cjs", "vite.config.cts",
+        "vitest.config.mjs", "vitest.config.mts", "vitest.config.cjs", "vitest.config.cts",
+        ".nvmrc", ".node-version", "makefile", "readme.md",
+        "index.html", ".gitignore", "vite-env.d.ts"
     }
 
 

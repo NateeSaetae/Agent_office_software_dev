@@ -189,6 +189,27 @@ def test_folder_action_returns_full_path_and_uses_stored_directory(office, monke
     )
 
 
+def test_follow_up_plan_keeps_original_project_and_history(office, monkeypatch):
+    client, main, storage, tmp = office
+    project = create(client)
+    queued = []
+    async def connected():
+        return None
+    monkeypatch.setattr(main, "require_account", connected)
+    monkeypatch.setattr(main.orchestrator, "queue", queued.append, raising=False)
+    storage.save("tasks", {"id": "old", "project_id": project["id"], "status": "completed"}, "task.completed")
+    response = client.post(f"/api/projects/{project['id']}/plan", json={"message": "  Add task editing  "})
+    assert response.status_code == 200
+    assert queued[0]["description"] == "Add task editing"
+    assert queued[0]["planning_mode"] == "follow_up"
+    assert storage.get("projects", project["id"])["requirement"] == "Build a small task tracker"
+    assert storage.get("tasks", "old")["status"] == "completed"
+    assert client.post(f"/api/projects/{project['id']}/plan", json={"message": "  "}).status_code == 422
+    assert len(queued) == 1
+    assert client.post(f"/api/projects/{project['id']}/plan", json={}).status_code == 200
+    assert queued[-1]["planning_mode"] == "initial"
+
+
 def test_nested_symlink_refused_without_touching_target(tmp_path):
     root = tmp_path / "project"
     external = tmp_path / "outside"

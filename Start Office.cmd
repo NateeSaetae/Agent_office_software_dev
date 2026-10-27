@@ -6,6 +6,6 @@ echo Open http://127.0.0.1:8010 after the server starts.
 if exist ".venv\Scripts\python.exe" (
   ".venv\Scripts\python.exe" run.py
 ) else (
-  python run.py
+  py run.py
 )
 pause

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from .agents import BASE, INSTRUCTIONS
-from .security import safe_path, files, run_tests, devops_config_path
+from .security import safe_path, files, run_tests, devops_config_path, qa_artifact_path
 from .store import Store, now
 from .provider import Provider
 
@@ -92,20 +92,20 @@ class Orchestrator:
                             for t in tasks
                             if t["status"] == "pending"
                             and all(
-                                by_id[d]["status"] == "completed"
+                                by_id[d]["status"] in {"completed", "skipped"}
                                 for d in t["depends_on"]
                             )
                         ),
                         None,
                     )
                     if not eligible:
-                        unfinished = [t for t in tasks if t["status"] != "completed"]
+                        unfinished = [t for t in tasks if t["status"] not in {"completed", "skipped"}]
                         self.store.emit(
                             "workflow.paused" if unfinished else "workflow.completed",
                             project_id=project_id,
                             message="Resolve blocked tasks to continue"
                             if unfinished
-                            else "All planned tasks completed",
+                            else "Workflow finished; tasks completed or explicitly skipped",
                         )
                         return
                     self.queue(eligible, from_pipeline=True)
@@ -191,16 +191,22 @@ class Orchestrator:
                 a["status"] = "expired"
                 self.store.save("approvals", a, "approval.expired")
 
-    def queue(self, task: dict, *, from_pipeline: bool = False) -> None:
+    def queue(
+        self, task: dict, *, from_pipeline: bool = False, manual_retry: bool = False
+    ) -> None:
         if self.active or (
             self.pipeline and not self.pipeline.done() and not from_pipeline
         ):
             raise ValueError("Another run is active. Wait or cancel it first.")
+        attempt = task.get("attempts", 0) + 1
+        explicit_retry = manual_retry and not from_pipeline and task["status"] in {
+            "failed", "blocked", "cancelled", "interrupted"
+        }
+        if attempt > 3 and not explicit_retry:
+            raise ValueError("Automatic retry limit reached (3). Retry the task manually after resolving the issue.")
         task.pop("error", None)
         task["status"] = "queued"
-        task["attempts"] = task.get("attempts", 0) + 1
-        if task["attempts"] > 3:
-            raise ValueError("Retry limit reached (3)")
+        task["attempts"] = attempt
         task["run_id"] = uid()
         self.store.save("tasks", task, "task.queued")
         self.store.save(
@@ -263,6 +269,17 @@ class Orchestrator:
             raise ValueError("Task is not running")
         self.active[id].cancel()
 
+    def skip(self, id: str) -> dict:
+        task = self.store.get("tasks", id)
+        if self.active or (self.pipeline and not self.pipeline.done()):
+            raise ValueError("Wait for the active run to finish or cancel it before skipping a task")
+        if task["status"] not in {"pending", "failed", "blocked", "cancelled", "interrupted"}:
+            raise ValueError("Task cannot be skipped in its current state")
+        task["status"] = "skipped"
+        task["skipped_at"] = now()
+        self.store.save("tasks", task, "task.skipped", message="Skipped by user; task was not completed. Dependencies may proceed.")
+        return task
+
     async def _run(self, task: dict) -> None:
         try:
             async with self.lock:
@@ -303,6 +320,16 @@ class Orchestrator:
                         k: v for k, v in task.items() if k not in {"result", "error"}
                     },
                     "file_index": names,
+                    "planning_history": [
+                        {"request": t["description"], "status": t["status"], "plan": t.get("result")}
+                        for t in self.store.all("tasks")
+                        if t["project_id"] == project["id"] and t["agent_id"] == "planner" and t["id"] != task["id"]
+                    ] if task["agent_id"] == "planner" else [],
+                    "skipped_tasks": [
+                        {"id": t["id"], "title": t["title"], "status": "skipped"}
+                        for t in self.store.all("tasks")
+                        if t["project_id"] == project["id"] and t["status"] == "skipped"
+                    ],
                     "source_files": snapshot,
                     "previous_results": [
                         {
@@ -327,6 +354,13 @@ class Orchestrator:
                     + "\n"
                     + INSTRUCTIONS[task["agent_id"]]
                 )
+                if planner and task.get("planning_mode") == "follow_up":
+                    instructions += (
+                        "\nThis is a follow-up request for the existing project. Focus on the latest task description. "
+                        "Use the current source snapshot, planning history and previous results. "
+                        "Propose only the incremental changes needed; do not recreate completed work or restart the original project. "
+                        "The new plan will be appended to existing tasks after user approval."
+                    )
                 raw = await asyncio.wait_for(
                     self.provider.generate(
                         instructions,
@@ -365,20 +399,23 @@ class Orchestrator:
                         and result.changes
                     ):
                         raise ValueError("This role is not allowed to change source")
-                    if task["agent_id"] == "qa" and any(
-                        not (
-                            c.path.startswith(("tests/", "__tests__/"))
-                            or Path(c.path).name.startswith("test_")
-                            or ".test." in c.path
-                            or ".spec." in c.path
-                        )
-                        for c in result.changes
-                    ):
-                        raise ValueError("QA can propose test files only")
-                    if task["agent_id"] == "devops" and any(
-                        not devops_config_path(c.path) for c in result.changes
-                    ):
-                        raise ValueError("DevOps can propose local build configuration, scripts and documentation only; Docker is disabled")
+                    if task["agent_id"] == "qa":
+                        unsupported = [c.path for c in result.changes if not qa_artifact_path(c.path)]
+                        if unsupported:
+                            raise ValueError(
+                                "QA cannot change these files: " + ", ".join(unsupported)
+                                + ". Allowed: test files and QA documents (QA.md, TESTING.md, "
+                                "test-plan.md, test-results.md, qa-report.md). "
+                                "Assign application changes to Frontend/Backend."
+                            )
+                    if task["agent_id"] == "devops":
+                        unsupported = [c.path for c in result.changes if not devops_config_path(c.path)]
+                        if unsupported:
+                            raise ValueError(
+                                "DevOps cannot change these files: " + ", ".join(unsupported)
+                                + ". Allowed: local build configuration, entry HTML, scripts and documentation. "
+                                "Assign application components to Frontend/Backend. Docker files remain disabled."
+                            )
                     proposals = []
                     if len({c.path for c in result.changes}) != len(result.changes):
                         raise ValueError("Duplicate change paths")

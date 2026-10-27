@@ -1,7 +1,7 @@
 param([switch]$Install,[int]$Port=8010)
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
-$officePython = if (Test-Path '.venv/Scripts/python.exe') { (Resolve-Path '.venv/Scripts/python.exe').Path } else { 'python' }
+$officePython = if (Test-Path '.venv/Scripts/python.exe') { (Resolve-Path '.venv/Scripts/python.exe').Path } else { 'py' }
 if ($Install) {
     & $officePython -m pip install -r apps/api/requirements.txt
     if ($LASTEXITCODE -ne 0) { throw 'Python dependency installation failed.' }

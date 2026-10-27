@@ -49,6 +49,7 @@ import "./workspace-theme.css";
 import "./navbar.css";
 import "./new-project-modal.css";
 import "./light-shell.css";
+import "./planner-dialog.css";
 
 const icons: Record<string, typeof Home> = {
   planner: Compass,
@@ -72,6 +73,7 @@ const statusLabel = (s: string) =>
     queued: "Queued",
     awaiting_approval: "Needs your approval",
     completed: "Completed",
+    skipped: "Skipped",
     failed: "Needs attention",
     blocked: "Blocked",
     pending: "To do",
@@ -83,6 +85,9 @@ export default function App() {
     [newProject, setNewProject] = useState(false),
     [deleteProject, setDeleteProject] = useState<Project | null>(null),
     [projectId, setProjectId] = useState(""),
+    [plannerProject, setPlannerProject] = useState<Project | null>(null),
+    [plannerMessage, setPlannerMessage] = useState(""),
+    [plannerSending, setPlannerSending] = useState(false),
     [toast, setToast] = useState(""),
     [taskSearch, setTaskSearch] = useState(""),
     [eventSearch, setEventSearch] = useState(""),
@@ -103,7 +108,7 @@ export default function App() {
     [clock, setClock] = useState(new Date());
   const state = useOffice();
   const project =
-    state.projects.find((p) => p.id === projectId) ?? state.projects[0];
+    state.projects.find((p) => p.id === projectId);
   const projectTasks = state.tasks.filter((t) => t.project_id === project?.id);
   const visibleTasks = projectTasks.filter((t) =>
     `${t.title} ${t.description} ${t.agent_id}`
@@ -122,6 +127,7 @@ export default function App() {
     const close = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setNewProject(false);
+        setPlannerProject(null);
         setApproval(null);
         useOffice.getState().select(null);
       }
@@ -396,9 +402,7 @@ export default function App() {
                 value={project?.id ?? ""}
                 onChange={(e) => setProjectId(e.target.value)}
               >
-                {!state.projects.length && (
-                  <option value="">No projects yet</option>
-                )}
+                <option value="">Default — No project selected</option>
                 {state.projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -417,6 +421,14 @@ export default function App() {
                   Create plan
                 </button>
               )}
+              {project && (
+                <button className="secondary" disabled={state.busy} onClick={() => {
+                  setPlannerMessage("");
+                  setPlannerProject(project);
+                }}>
+                  <Compass size={14} /> คุยกับ Planner ต่อ
+                </button>
+              )}
             </div>
             <div className="kanban">
               {[
@@ -429,14 +441,14 @@ export default function App() {
                   title: "Needs attention",
                   statuses: ["failed", "blocked", "cancelled", "interrupted"],
                 },
-                { title: "Completed", statuses: ["completed"] },
+                { title: "Finished", statuses: ["completed", "skipped"] },
               ].map((col) => (
                 <section className="kanban-column" key={col.title}>
                   <h3>
                     <i
                       className={
                         "status-dot " +
-                        (col.title === "Completed" ? "connected" : "pending")
+                        (col.title === "Finished" ? "connected" : "pending")
                       }
                     />
                     {col.title}
@@ -461,6 +473,7 @@ export default function App() {
                             <span>{t.agent_id.toUpperCase()}</span>
                             <span>#{t.id.slice(0, 4)}</span>
                           </div>
+                          <div className="task-card-content" tabIndex={0} aria-label={t.title + " details"}>
                           <h4>{t.title}</h4>
                           <p className="task-description" tabIndex={0}>
                             {t.description}
@@ -497,8 +510,19 @@ export default function App() {
                               )}
                             </details>
                           )}
+                          </div>
                           <div className="task-bottom">
                             <Avatar id={t.agent_id} small />
+                            {["pending", "failed", "blocked", "cancelled", "interrupted"].includes(t.status) && (
+                              <button
+                                className="text-link"
+                                disabled={state.busy}
+                                title="Skip this task and allow dependent tasks to proceed"
+                                onClick={() => action(() => api("/tasks/" + t.id + "/skip", {}))}
+                              >
+                                Skip task
+                              </button>
+                            )}
                             {[
                               "running",
                               "queued",
@@ -515,6 +539,8 @@ export default function App() {
                                 <Pause size={12} />
                                 Cancel
                               </button>
+                            ) : t.status === "skipped" ? (
+                              <span className="skipped-text">Skipped</span>
                             ) : t.status !== "completed" ? (
                               <button
                                 className="text-link"
@@ -522,8 +548,8 @@ export default function App() {
                                   state.busy ||
                                   t.depends_on.some(
                                     (id) =>
-                                      state.tasks.find((d) => d.id === id)
-                                        ?.status !== "completed",
+                                      !["completed", "skipped"].includes(state.tasks.find((d) => d.id === id)
+                                        ?.status ?? ""),
                                   )
                                 }
                                 onClick={() => run(t)}
@@ -1009,6 +1035,35 @@ export default function App() {
           </button>
         </form>
       </NewProjectModal>
+      {plannerProject && (
+        <div className="modal-backdrop">
+          <section className="modal planner-follow-up" role="dialog" aria-modal="true" aria-labelledby="planner-follow-up-title">
+            <button className="close" aria-label="Close Planner conversation" onClick={() => setPlannerProject(null)}><X size={20} /></button>
+            <h2 id="planner-follow-up-title">คุยกับ Planner ต่อ</h2>
+            <p>{plannerProject.name} — บอกสิ่งที่ต้องการปรับเพิ่มจากงานเดิม</p>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (plannerSending || !plannerMessage.trim()) return;
+              const target = plannerProject;
+              setPlannerSending(true);
+              void action(async () => {
+                await api("/projects/" + target.id + "/plan", { message: plannerMessage.trim() });
+                setProjectId(target.id);
+                setPlannerProject(null);
+                setPlannerMessage("");
+              }).finally(() => setPlannerSending(false));
+            }}>
+              <label htmlFor="planner-message">ต้องการปรับอะไรเพิ่มเติม?</label>
+              <textarea id="planner-message" name="planner-message" autoFocus required rows={8} maxLength={20000} value={plannerMessage} onChange={(e) => setPlannerMessage(e.target.value)} placeholder="เช่น เพิ่มปุ่มแก้ไขชื่องาน และเปลี่ยนสีหน้าเว็บเป็นโทนเขียว" />
+              <p>Planner จะดูไฟล์และแผนเดิม แล้วเสนอแผนเพิ่มให้คุณอนุมัติ</p>
+              <div className="planner-dialog-actions">
+                <button className="secondary" type="button" onClick={() => setPlannerProject(null)}>ยกเลิก</button>
+                <button className="primary" type="submit" disabled={plannerSending || state.busy || !plannerMessage.trim()}>{plannerSending ? "กำลังส่ง…" : "ส่งให้ Planner"} <ArrowRight size={16} /></button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
       {approval && (
         <div className="modal-backdrop">
           <section

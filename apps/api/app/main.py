@@ -217,11 +217,18 @@ async def require_account():
         raise HTTPException(409, "Connect a ChatGPT account in Settings first")
 
 
+class PlanRequest(BaseModel):
+    message: str | None = Field(default=None, max_length=20000)
+
+
 @app.post("/api/projects/{id}/plan")
-async def plan(id: str):
+async def plan(id: str, body: PlanRequest | None = None):
     try:
         project = store.get("projects", id)
-        if orchestrator.active:
+        message = body.message.strip() if body and body.message is not None else None
+        if message == "":
+            raise HTTPException(422, "Describe the changes you want to discuss with Planner")
+        if orchestrator.active or (orchestrator.pipeline and not orchestrator.pipeline.done()):
             raise HTTPException(409, "A run is already active")
         await require_account()
         project = store.get("projects", id)
@@ -229,8 +236,9 @@ async def plan(id: str):
             "id": uid(),
             "project_id": id,
             "agent_id": "planner",
-            "title": "Plan " + project["name"],
-            "description": project["requirement"],
+            "title": ("Refine " if message else "Plan ") + project["name"],
+            "description": message or project["requirement"],
+            "planning_mode": "follow_up" if message else "initial",
             "acceptance_criteria": ["Dependency-ordered tasks with QA and review"],
             "depends_on": [],
             "status": "pending",
@@ -272,12 +280,12 @@ async def run_task(id: str):
         }:
             raise ValueError("Task cannot be started in its current state")
         for dep in task["depends_on"]:
-            if store.get("tasks", dep)["status"] != "completed":
+            if store.get("tasks", dep)["status"] not in {"completed", "skipped"}:
                 raise ValueError("Complete dependencies first")
         await require_account()
         task = store.get("tasks", id)
         store.get("projects", task["project_id"])
-        orchestrator.queue(task)
+        orchestrator.queue(task, manual_retry=True)
         return task
     except KeyError:
         raise HTTPException(404, "Task not found")
@@ -290,6 +298,16 @@ def cancel(id: str):
     try:
         orchestrator.cancel(id)
         return {"ok": True}
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+
+
+@app.post("/api/tasks/{id}/skip")
+async def skip_task(id: str):
+    try:
+        return orchestrator.skip(id)
+    except KeyError:
+        raise HTTPException(404, "Task not found")
     except ValueError as e:
         raise HTTPException(409, str(e))
 

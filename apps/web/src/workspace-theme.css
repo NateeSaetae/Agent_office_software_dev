@@ -473,6 +473,17 @@
   min-width: 150px;
   max-width: 260px;
 }
+.planner-follow-up textarea {
+  display: block;
+  width: 100%;
+  min-height: 160px;
+  margin: 12px 0;
+  padding: 14px;
+  resize: vertical;
+}
+.planner-follow-up form > p {
+  margin: 14px 0;
+}
 .workspace-mode .kanban {
   min-height: 0;
   gap: 16px;
@@ -484,7 +495,7 @@
   padding: 14px 12px 10px;
   display: flex;
   flex-direction: column;
-  height: clamp(330px, calc(100dvh - 540px), 760px);
+  height: auto;
 }
 .workspace-mode .kanban-column h3 {
   font-size: 15px;
@@ -518,11 +529,10 @@
   background: #26b795;
 }
 .workspace-mode .kanban-cards {
-  overflow: auto;
+  overflow: visible;
   min-height: 0;
   flex: 1;
   padding: 1px 4px 8px;
-  overscroll-behavior: contain;
 }
 .workspace-mode .task-card {
   background: #fff;
@@ -531,6 +541,26 @@
   box-shadow: 0 3px 9px #24437005;
   padding: 17px;
   margin-bottom: 13px;
+  height: 520px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.workspace-mode .task-card-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+  margin-top: 12px;
+  padding-right: 5px;
+}
+.workspace-mode .task-card-content :is(h4, .task-description, .criteria, .task-error, details) {
+  max-height: none;
+  overflow: visible;
+}
+.workspace-mode .task-card > :is(.task-top, .task-bottom) {
+  flex-shrink: 0;
 }
 .workspace-mode .task-top {
   color: #3c8add;
@@ -1127,7 +1157,7 @@
     width: 100%;
   }
   .workspace-mode .kanban-column {
-    height: 580px;
+    height: auto;
   }
   .workspace-mode .journal-list {
     max-height: 600px;

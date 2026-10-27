@@ -193,6 +193,39 @@ def test_qa_cannot_complete_without_tests(tmp_path):
     asyncio.run(scenario())
 
 
+@pytest.mark.parametrize("path", ["mini-todo/QA.md", "docs/test-plan.md", "mini-todo/tests/checklist.md"])
+def test_qa_document_requires_approval_and_remains_unverified(tmp_path, path):
+    async def scenario():
+        root, s, o, t = setup(tmp_path, result([
+            {"path": path, "content": "# QA\nBuild: not tested\n"}
+        ]), agent="qa")
+        o.queue(t)
+        approval = await wait_approval(o)
+        assert not (root / path).exists()
+        o.decide(approval, True)
+        await o.active["t"]
+        assert (root / path).read_text() == "# QA\nBuild: not tested\n"
+        assert s.get("tasks", "t")["status"] == "blocked"
+        assert "Manual QA verification" in s.get("tasks", "t")["result"]["summary"]
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("path", ["mini-todo/src/App.tsx", "mini-todo/package.json", "src.test.folder/App.tsx"])
+def test_qa_rejects_application_changes_with_filename(tmp_path, path):
+    async def scenario():
+        root, s, o, t = setup(tmp_path, result([
+            {"path": path, "content": "not allowed"}
+        ]), agent="qa")
+        o.queue(t)
+        await o.active["t"]
+        saved = s.get("tasks", "t")
+        assert saved["status"] == "failed"
+        assert path in saved["error"]
+        assert not (root / path).exists()
+        assert not o.waiters
+    asyncio.run(scenario())
+
+
 def test_readonly_role_cannot_write(tmp_path):
     async def scenario():
         root, s, o, t = setup(
@@ -237,10 +270,38 @@ def test_retry_limit(tmp_path):
     async def scenario():
         root, s, o, t = setup(tmp_path, result())
         t["attempts"] = 3
+        before = dict(t)
         with pytest.raises(ValueError):
             o.queue(t)
         assert not o.active
+        assert t == before
 
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("status", ["failed", "blocked", "cancelled", "interrupted"])
+def test_explicit_retry_after_limit_preserves_attempt_history(tmp_path, status):
+    async def scenario():
+        root, s, o, t = setup(tmp_path, result())
+        t.update(status=status, attempts=3, error="Previous configuration error")
+        o.queue(t, manual_retry=True)
+        await o.active["t"]
+        saved = s.get("tasks", "t")
+        assert saved["status"] == "completed"
+        assert saved["attempts"] == 4
+        assert "error" not in saved
+        assert s.all("runs")[0]["attempt"] == 4
+    asyncio.run(scenario())
+
+
+def test_pipeline_cannot_override_retry_limit(tmp_path):
+    async def scenario():
+        root, s, o, t = setup(tmp_path, result())
+        t.update(status="failed", attempts=3)
+        with pytest.raises(ValueError, match="Automatic retry limit"):
+            o.queue(t, from_pipeline=True, manual_retry=True)
+        assert not o.active
+        assert t["attempts"] == 3
     asyncio.run(scenario())
 
 
@@ -325,7 +386,7 @@ def test_old_test_request_becomes_manual_blocker(tmp_path):
     asyncio.run(scenario())
 
 
-@pytest.mark.parametrize("path", ["package.json", "tsconfig.json", "vite.config.ts", "scripts/start.ps1", "docs/local-run.md"])
+@pytest.mark.parametrize("path", ["package.json", "tsconfig.json", "vite.config.ts", "scripts/start.ps1", "docs/local-run.md", "mini-todo/index.html", "mini-todo/.gitignore", "mini-todo/src/vite-env.d.ts"])
 def test_devops_local_configuration_allowed(path):
     from app.security import devops_config_path
     assert devops_config_path(path)
@@ -335,3 +396,72 @@ def test_devops_local_configuration_allowed(path):
 def test_devops_container_and_app_changes_rejected(path):
     from app.security import devops_config_path
     assert not devops_config_path(path)
+
+
+def test_devops_vite_entry_requires_approval(tmp_path):
+    async def scenario():
+        root, s, o, t = setup(tmp_path, result([
+            {"path": "mini-todo/index.html", "content": '<div id="root"></div>'},
+            {"path": "mini-todo/package.json", "content": '{}'},
+        ]), agent="devops")
+        o.queue(t)
+        approval = await wait_approval(o)
+        assert not (root / "mini-todo/index.html").exists()
+        o.decide(approval, True)
+        await o.active["t"]
+        assert s.get("tasks", "t")["status"] == "completed"
+        assert (root / "mini-todo/index.html").read_text() == '<div id="root"></div>'
+    asyncio.run(scenario())
+
+
+def test_devops_rejection_names_file_without_writing(tmp_path):
+    async def scenario():
+        root, s, o, t = setup(tmp_path, result([
+            {"path": "mini-todo/index.html", "content": '<div id="root"></div>'},
+            {"path": "mini-todo/src/App.tsx", "content": 'export default () => null'},
+        ]), agent="devops")
+        o.queue(t)
+        await o.active["t"]
+        saved = s.get("tasks", "t")
+        assert saved["status"] == "failed"
+        assert "mini-todo/src/App.tsx" in saved["error"]
+        assert not (root / "mini-todo/index.html").exists()
+        assert not o.waiters
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("path", ["mini-todo/vite.config.mjs", "vite.config.mts", "vitest.config.cjs"])
+def test_devops_module_configuration_allowed(path):
+    from app.security import devops_config_path
+    assert devops_config_path(path)
+
+
+def test_skip_preserves_history_and_unblocks_workflow(tmp_path):
+    async def scenario():
+        root, s, o, t = setup(tmp_path, result())
+        t.update(status="failed", attempts=3, error="Configuration failed")
+        s.save("tasks", t, "task.failed")
+        child = {**t, "id": "child", "status": "pending", "attempts": 0, "depends_on": ["t"]}
+        s.save("tasks", child, "task.created")
+        skipped = o.skip("t")
+        assert skipped["status"] == "skipped"
+        assert skipped["attempts"] == 3
+        assert skipped["error"] == "Configuration failed"
+        assert not list(root.iterdir())
+        assert not s.all("runs")
+        o.start_workflow("p")
+        await o.pipeline
+        assert s.get("tasks", "t")["status"] == "skipped"
+        assert s.get("tasks", "child")["status"] == "completed"
+        assert any(e["type"] == "task.skipped" for e in s.recent())
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("status", ["running", "queued", "awaiting_approval", "completed", "skipped"])
+def test_skip_rejects_active_or_finished_status(tmp_path, status):
+    root, s, o, t = setup(tmp_path, result())
+    t["status"] = status
+    s.save("tasks", t, "task.created")
+    with pytest.raises(ValueError):
+        o.skip("t")
+    assert s.get("tasks", "t")["status"] == status
