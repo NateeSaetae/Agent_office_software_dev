@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.venv/
+.python-deps/
+__pycache__/
+.pytest_cache/
+.data/
+work/
+*.tsbuildinfo
