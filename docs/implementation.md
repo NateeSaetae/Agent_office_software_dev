@@ -1,3 +1,7 @@
+## Current Docker-free mode
+
+Docker invocations have been removed from the project test runner and diagnostics. DevOps focuses on local dependency/build/runtime configuration and instructions, with approved file changes. Agent instructions disallow container setup. The UI reports manual project verification. No arbitrary host shell fallback was added. QA execution remains blocked pending actual verification; no manual-result import/approval UI exists yet. Existing project files and history are preserved, and old task descriptions are not rewritten. Restart the backend to activate the changed policies.
+
 # Implementation notes
 
 The browser state is a projection of persisted backend records. It never fabricates tasks, tool results, or progress.
@@ -16,7 +20,7 @@ The application owns file access and test execution. Codex runs in a separate sc
 
 ## QA feedback
 
-When a sequential workflow receives a real nonzero test result with at least one executed test, it creates a repair task for the most recent developer. QA then depends on that repair. Two repair cycles are possible before the QA attempt limit is reached. A missing Docker daemon, zero tests, or missing runtime permission stops the workflow instead of triggering code changes.
+When a sequential workflow receives a real nonzero test result with at least one executed test, it creates a repair task for the most recent developer. QA then depends on that repair. Two repair cycles are possible before the QA attempt limit is reached. In the current Docker-free mode, project tests return executed=false and pause the workflow for manual verification; they never trigger automatic repair.
 
 ## Persistence and recovery
 
@@ -31,14 +35,14 @@ There is one backend process and one live execution at a time. Multi-process coo
 - REST: session bootstrap, state, projects, planning, workflow, task run/cancel, approvals, account/login, diagnostics.
 - WebSocket: persisted event batches and heartbeats.
 - Provider protocol: structured generation with a schema and runtime event callback.
-- Source tools: bounded file index/read, approved replacement writes, fixed Docker test suites.
+- Source tools: bounded file index/read, approved replacement writes, manual project test verification (Docker disabled).
 - Game: scene composition and A* navigation consume application state; animation never changes backend state.
 
 ## Validation
 
 29 backend tests passed; one symbolic-link test was skipped because this Windows host does not permit creating symlinks. They cover protected paths, nested source selection, persistent event replay, plan cycles, approval gates/rejection/replay, stale file hashes, cancellation, QA evidence, role restrictions, restart recovery, dependencies, bounded QA feedback, retry limits, HTTP session/origin controls, project creation, and WebSocket delivery.
 
-The fake provider and fake Docker results used by contract tests exist only in the tests package.
+The fake provider and fake test results used by contract tests exist only in the tests package.
 
 Production TypeScript compilation and Vite build passed. The 3D office and navigation surfaces were inspected in the in-app browser.
 

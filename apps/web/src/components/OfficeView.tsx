@@ -73,16 +73,18 @@ export default function OfficeView({
           <Office effects={effects} roaming={roaming} />
         </Suspense>
       </div>
-      {panelOpen ? (
-        <aside
-          className="agent-status-panel office-hud"
+      <aside
+          className={"agent-status-panel office-hud " + (panelOpen ? "team-expanded" : "team-collapsed")}
+          id="office-agent-status"
+          aria-hidden={!panelOpen}
+          inert={!panelOpen}
           role="dialog"
           aria-label="Agent status"
           aria-modal={false}
         >
           <div className="hud-heading">
             <h2>
-              <Users size={15} /> AI AGENTS
+              <Users size={15} /> AI team
             </h2>
             <button
               aria-label="Close agent status"
@@ -139,15 +141,17 @@ export default function OfficeView({
             </button>
           )}
         </aside>
-      ) : (
         <button
-          className="open-agent-status office-hud"
+          className={"open-agent-status office-hud " + (panelOpen ? "team-trigger-hidden" : "team-trigger-visible")}
+          aria-expanded={panelOpen}
+          aria-controls="office-agent-status"
+          aria-hidden={panelOpen}
+          tabIndex={panelOpen ? -1 : 0}
           onClick={() => setPanelOpen(true)}
         >
           <Users size={17} />
           Agent status<span>6</span>
         </button>
-      )}
       <div className="office-controls office-hud">
         <span className="office-live">
           <i
@@ -185,7 +189,7 @@ export default function OfficeView({
         <div className="hud-heading">
           <h2>
             <Activity size={13} />
-            RECENT ACTIVITY
+            Recent activity
           </h2>
           <button
             aria-label="View all activity"
@@ -234,7 +238,7 @@ export default function OfficeView({
         <div className="hud-heading">
           <h2>
             <FolderGit2 size={14} />
-            ACTIVE PROJECT
+            Active project
           </h2>
           {project && (
             <span>

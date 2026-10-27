@@ -1,0 +1,210 @@
+/* The close control stays outside the scrolling form. */
+.app .new-project-backdrop {
+  background: #17335858;
+  backdrop-filter: blur(8px);
+  z-index: 500;
+  animation: new-project-backdrop-in 0.24s ease-out both;
+}
+.app .new-project-modal.modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  width: 580px;
+  max-height: calc(100dvh - 40px);
+  border: 1px solid #dce9f9;
+  border-radius: 28px;
+  background: #fff;
+  color: #28466d;
+  font:
+    15px/1.65 "DM Sans",
+    "Leelawadee UI",
+    Tahoma,
+    sans-serif;
+  box-shadow: 0 30px 90px #14345d35;
+  animation: new-project-slide-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.app .new-project-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: calc(100dvh - 42px);
+  padding: 32px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.app .new-project-scroll textarea {
+  scrollbar-width: none;
+}
+.app .new-project-scroll::-webkit-scrollbar,
+.app .new-project-scroll textarea::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.app .new-project-modal .new-project-close {
+  position: absolute;
+  top: 17px;
+  right: 17px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #edf3fa;
+  border-radius: 50%;
+  background: #f2f7fd;
+  color: #6782a3;
+}
+.app .new-project-modal .new-project-close:hover {
+  background: #e8f1fc;
+}
+.app .new-project-modal .modal-symbol {
+  background: #edf6ff;
+  color: #237cee;
+  border: 1px solid #d5eaff;
+  border-radius: 17px;
+}
+.app .new-project-modal .eyebrow {
+  font-size: 11px;
+  letter-spacing: 1.3px;
+  color: #587599;
+}
+.app .new-project-modal h2 {
+  font-size: 28px;
+  font-weight: 750;
+  color: #203e65;
+  margin: 12px 0;
+}
+.app .new-project-scroll > p {
+  font-size: 15px;
+  color: #7185a0;
+  margin-bottom: 26px;
+  line-height: 1.7;
+}
+.app .new-project-modal label {
+  font-size: 15px;
+  color: #456183;
+}
+.app .new-project-modal label > span {
+  color: #8498b2;
+  font-size: 11px;
+}
+.app .new-project-modal :is(input, textarea)[name] {
+  color: #27476f;
+  background: #f7faff;
+  font-size: 16px;
+  border: 1px solid #dce6f4;
+  border-radius: 999px;
+  padding: 13px 17px;
+  min-height: 48px;
+  outline: none;
+  box-shadow: none;
+  transition: border-color 0.16s ease;
+}
+.app .new-project-modal textarea[name] {
+  border-radius: 22px;
+  min-height: 140px;
+  max-height: 250px;
+  padding: 14px 17px;
+}
+.app .new-project-modal :is(input, textarea)[name]:focus,
+.app .new-project-modal :is(input, textarea)[name]:focus-visible {
+  border: 1px solid #377bc8;
+  outline: none;
+  outline-offset: 0;
+  box-shadow: none;
+}
+.app .new-project-modal :is(input, textarea)::placeholder {
+  color: #91a4bc;
+  font-size: 14px;
+}
+.app .new-project-modal label > small {
+  font-size: 13px;
+  color: #7c91ab;
+}
+.app .new-project-modal .form-note {
+  font-size: 13px;
+  color: #6d88a9;
+}
+.app .new-project-modal .primary {
+  color: #fff;
+  background: linear-gradient(115deg, #1460ee, #218af4);
+  border: 1px solid #1466ed;
+  border-radius: 999px;
+  font-size: 14px;
+}
+.app .new-project-backdrop.is-closing {
+  animation: new-project-backdrop-out 0.28s ease-in both;
+}
+.app .new-project-backdrop.is-closing .new-project-modal {
+  pointer-events: none;
+  animation: new-project-slide-out 0.28s cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes new-project-slide-in {
+  from {
+    transform: translate3d(0, 100dvh, 0);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+@keyframes new-project-slide-out {
+  from {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(0, 100dvh, 0);
+    opacity: 0;
+  }
+}
+@keyframes new-project-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes new-project-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@media (max-width: 600px) {
+  .app .new-project-backdrop {
+    padding: 12px;
+  }
+  .app .new-project-modal.modal {
+    border-radius: 24px;
+    max-height: calc(100dvh - 24px);
+  }
+  .app .new-project-scroll {
+    padding: 26px 22px;
+    max-height: calc(100dvh - 26px);
+  }
+  .app .new-project-modal h2 {
+    font-size: 25px;
+  }
+  .app .new-project-modal .new-project-close {
+    top: 13px;
+    right: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app .new-project-backdrop,
+  .app .new-project-modal.modal,
+  .app .new-project-backdrop.is-closing,
+  .app .new-project-backdrop.is-closing .new-project-modal {
+    animation-duration: 1ms;
+  }
+}

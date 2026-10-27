@@ -252,7 +252,7 @@ def test_qa_feedback_creates_bounded_repair(tmp_path, monkeypatch):
             return {
                 **result(),
                 "test_suite": "python"
-                if "run available fixed sandbox tests" in instructions
+                if "Inspect acceptance criteria" in instructions
                 else "none",
             }
 
@@ -267,7 +267,7 @@ def test_qa_feedback_creates_bounded_repair(tmp_path, monkeypatch):
             "output": "verified fixture failure" if calls == 1 else "passed",
         }
 
-    monkeypatch.setattr(module, "docker_test", fake_test)
+    monkeypatch.setattr(module, "run_tests", fake_test)
 
     async def scenario():
         root, s, o, t = setup(tmp_path, result())
@@ -295,3 +295,43 @@ def test_qa_feedback_creates_bounded_repair(tmp_path, monkeypatch):
         assert any(e["type"] == "qa.feedback" for e in s.recent())
 
     asyncio.run(scenario())
+
+def test_manual_test_mode_never_spawns_process(tmp_path, monkeypatch):
+    from app.security import run_tests, test_policy
+
+    async def forbidden(*args, **kwargs):
+        raise AssertionError("Manual mode must not spawn Docker or a host shell")
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", forbidden)
+    monkeypatch.setattr(asyncio, "create_subprocess_shell", forbidden)
+    for suite in ("python", "node"):
+        outcome = asyncio.run(run_tests(tmp_path, suite))
+        assert outcome["executed"] is False
+        assert outcome["exit_code"] is None
+        assert outcome["test_count"] == 0
+    assert test_policy()["mode"] == "manual"
+
+
+def test_old_test_request_becomes_manual_blocker(tmp_path):
+    async def scenario():
+        root, s, o, t = setup(tmp_path, {**result(), "test_suite": "node"})
+        o.queue(t)
+        await o.active["t"]
+        saved = s.get("tasks", "t")
+        assert saved["status"] == "blocked"
+        assert saved["result"]["test_result"]["executed"] is False
+        assert not o.waiters
+        assert any(e["type"] == "tests.manual_required" for e in s.recent())
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("path", ["package.json", "tsconfig.json", "vite.config.ts", "scripts/start.ps1", "docs/local-run.md"])
+def test_devops_local_configuration_allowed(path):
+    from app.security import devops_config_path
+    assert devops_config_path(path)
+
+
+@pytest.mark.parametrize("path", ["Dockerfile", "infra/Dockerfile.prod", "docker-compose.yaml", "compose.yml", "infra/.dockerignore", "src/App.tsx"])
+def test_devops_container_and_app_changes_rejected(path):
+    from app.security import devops_config_path
+    assert not devops_config_path(path)

@@ -13,7 +13,11 @@ import * as THREE from "three";
 import { roles, useOffice } from "./store";
 import { DESKS } from "./office/navigation";
 import { OfficeSimulation } from "./office/simulation";
-import { applyCharacterFrame } from "./office/animation";
+import {
+  applyCharacterFrame,
+  shouldSitAtDesk,
+  seatedFrame,
+} from "./office/animation";
 
 function WorldCamera() {
   const { camera, size } = useThree();
@@ -65,7 +69,7 @@ function Character({
   simulation: OfficeSimulation;
   reducedMotion: boolean;
 }) {
-  const atlas = useTexture("/office/characters-atlas.png");
+  const atlas = useTexture("/office/characters-motion-v2.png");
   const { size } = useThree();
   const group = useRef<THREE.Group>(null),
     sprite = useRef<THREE.Sprite>(null),
@@ -90,7 +94,7 @@ function Character({
   const select = useOffice((s) => s.select);
   const map = useMemo(() => {
     const t = atlas.clone();
-    t.repeat.set(0.25, 1 / 6);
+    t.repeat.set(1 / 12, 1 / 6);
     t.magFilter = THREE.NearestFilter;
     t.minFilter = THREE.NearestFilter;
     t.colorSpace = THREE.SRGBColorSpace;
@@ -99,35 +103,61 @@ function Character({
   }, [atlas]);
   const alphaPixels = useMemo(() => {
     const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 768;
+    canvas.width = atlas.image.width;
+    canvas.height = atlas.image.height;
     const context = canvas.getContext("2d")!;
     context.drawImage(atlas.image, 0, 0);
-    return context.getImageData(0, 0, 512, 768).data;
+    return context.getImageData(0, 0, canvas.width, canvas.height).data;
   }, [atlas]);
   useEffect(() => () => map.dispose(), [map]);
   const nameTag = useRef<HTMLDivElement>(null);
   const height = Math.max(68, Math.min(122, size.height * 0.145));
-  useFrame(() => {
+  const sitProgress = useRef(0);
+  const departProgress = useRef(1);
+  useFrame((_, dt) => {
     const a = simulation.actors[index];
     if (!group.current || !sprite.current) return;
+    const sitting = shouldSitAtDesk(
+      online,
+      a.status,
+      a.moving,
+      a.position,
+      DESKS[index],
+    );
+    const previousSit = sitProgress.current;
+    sitProgress.current = sitting ? Math.min(1, previousSit + dt / 0.38) : 0;
+    if (!sitting && previousSit > 0) departProgress.current = 0;
+    departProgress.current = Math.min(1, departProgress.current + dt / 0.25);
+    const ease = (v: number) => v * v * (3 - 2 * v);
+    const seated = sitting;
+    const lift = seated ? ease(sitProgress.current) : 0;
     group.current.position.set(
       (a.position[0] - 0.5) * size.width,
-      (0.5 - a.position[1]) * size.height,
+      (0.5 - a.position[1]) * size.height +
+        lift * height * (index >= 3 ? 0.23 : 0.075),
       a.position[1] * 10,
     );
     sprite.current.renderOrder = Math.round(a.position[1] * 1000);
     // Three.Sprite uses unsigned scale lengths; mirror the atlas UVs instead.
-    sprite.current.scale.set(height, height, 1);
+    const settle = seated ? 1.12 : 0.96 + 0.04 * ease(departProgress.current);
+    sprite.current.scale.set(height * settle, height * settle, 1);
     const breathing = reducedMotion
       ? 0
-      : Math.sin(simulation.time * 2 + a.phase) * 1.2;
+      : Math.sin(simulation.time * 2 + a.phase) * (seated ? 0.35 : 0.65);
     sprite.current.position.y =
-      height / 2 +
+      (height * settle) / 2 +
       (a.moving
-        ? Math.abs(Math.sin(simulation.time * 14 + a.phase)) * 2
+        ? (1 - Math.cos(simulation.time * Math.PI * 6 + a.phase)) * 0.45
         : breathing);
-    applyCharacterFrame(map, a.frame, index, a.facing);
+    const frame = seated
+      ? seatedFrame(
+          sitProgress.current,
+          simulation.time,
+          a.phase,
+          a.status === "running" && !reducedMotion,
+        )
+      : a.frame;
+    applyCharacterFrame(map, frame, index, seated ? 1 : a.facing, 12);
     if (nameTag.current) {
       const atDesk =
         Math.hypot(
@@ -138,7 +168,11 @@ function Character({
         atDesk && !selected ? "hidden" : "visible";
     }
     if (badge.current) {
-      badge.current.dataset.motion = a.moving ? "walking" : "standing";
+      badge.current.dataset.motion = seated
+        ? "seated"
+        : a.moving
+          ? "walking"
+          : "standing";
       const label = !online
         ? "Offline"
         : a.status === "idle"
@@ -191,9 +225,21 @@ function Character({
           const uv = e.uv.clone();
           map.updateMatrix();
           map.transformUv(uv);
-          const x = Math.max(0, Math.min(511, Math.floor(uv.x * 512))),
-            y = Math.max(0, Math.min(767, Math.floor(uv.y * 768)));
-          if (alphaPixels[(y * 512 + x) * 4 + 3] < 24) return;
+          const x = Math.max(
+              0,
+              Math.min(
+                atlas.image.width - 1,
+                Math.floor(uv.x * atlas.image.width),
+              ),
+            ),
+            y = Math.max(
+              0,
+              Math.min(
+                atlas.image.height - 1,
+                Math.floor(uv.y * atlas.image.height),
+              ),
+            );
+          if (alphaPixels[(y * atlas.image.width + x) * 4 + 3] < 24) return;
           e.stopPropagation();
           select(roles[index].id);
         }}
@@ -462,4 +508,4 @@ export default function Office({
   );
 }
 useTexture.preload("/office/office-environment.png");
-useTexture.preload("/office/characters-atlas.png");
+useTexture.preload("/office/characters-motion-v2.png");

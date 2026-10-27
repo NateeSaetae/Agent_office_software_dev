@@ -26,7 +26,7 @@ export class OfficeSimulation {
       path: [],
       moving: false,
       facing: 1,
-      frame: 1,
+      frame: 2,
       phase: i * 1.17,
       nextBreak: 1.8 + i * 1.4,
       blockedFor: 0,
@@ -67,7 +67,7 @@ export class OfficeSimulation {
       const idle = a.status === "idle";
       if (!this.online || reducedMotion || (!roaming && idle)) {
         a.moving = false;
-        a.frame = 1;
+        a.frame = 2;
         continue;
       }
       if (idle && a.path.length === 0 && this.time >= a.nextBreak) {
@@ -117,7 +117,7 @@ export class OfficeSimulation {
           );
           if (blocked) {
             a.moving = false;
-            a.frame = 1;
+            a.frame = 2;
             a.blockedFor += dt;
             if (a.blockedFor > 1.2) {
               a.path = [];
@@ -141,8 +141,8 @@ export class OfficeSimulation {
           a.position[0] += (dx / dist) * step;
           a.position[1] += (dy / dist) * step;
         }
-        a.frame = Math.floor(this.time * 7 + a.phase) % 4;
-      } else a.frame = 1;
+        a.frame = Math.floor(this.time * 12 + a.phase) % 8;
+      } else a.frame = 2;
     }
   }
 }

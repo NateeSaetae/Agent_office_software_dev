@@ -1,7 +1,7 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   Activity,
   Bell,
-  ChevronDown,
   FolderGit2,
   House,
   ListTodo,
@@ -37,6 +37,35 @@ export default function AppHeader({
   onApprovals: () => void;
   onNewProject: () => void;
 }) {
+  const nav = useRef<HTMLElement>(null);
+  const buttons = useRef<Partial<Record<Page, HTMLButtonElement>>>({});
+  const [selection, setSelection] = useState({ left: 0, width: 0 });
+  useLayoutEffect(() => {
+    const menu = nav.current;
+    if (!menu) return;
+    const update = () => {
+      const button = buttons.current[page];
+      if (!button) return;
+      const left = button.offsetLeft;
+      const width = button.offsetWidth;
+      setSelection((previous) =>
+        previous.left === left && previous.width === width
+          ? previous
+          : { left, width },
+      );
+      // Reveal a selected item inside the mobile menu without scrolling the page.
+      const right = left + width;
+      if (left < menu.scrollLeft) menu.scrollLeft = left;
+      else if (right > menu.scrollLeft + menu.clientWidth)
+        menu.scrollLeft = right - menu.clientWidth;
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(menu);
+    for (const button of Object.values(buttons.current))
+      if (button) observer.observe(button);
+    return () => observer.disconnect();
+  }, [page]);
   return (
     <header className="app-header">
       <button
@@ -52,11 +81,23 @@ export default function AppHeader({
           NATEE’S<small>SOFTWARE HOUSE</small>
         </span>
       </button>
-      <nav className="top-navigation" aria-label="Main navigation">
+      <nav ref={nav} className="top-navigation" aria-label="Main navigation">
+        <span
+          className="nav-selection-indicator"
+          aria-hidden="true"
+          style={{
+            width: selection.width,
+            transform: "translateX(" + selection.left + "px)",
+            opacity: selection.width ? 1 : 0,
+          }}
+        />
         {items.map(({ label, icon: Icon }) => (
           <button
             className={"top-nav-item " + (page === label ? "active" : "")}
             key={label}
+            ref={(element) => {
+              buttons.current[label] = element ?? undefined;
+            }}
             aria-current={page === label ? "page" : undefined}
             onClick={() => onPage(label)}
           >

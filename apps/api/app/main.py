@@ -15,6 +15,7 @@ from fastapi import (
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field
+from .security import test_policy
 from .agents import AGENTS
 from .store import Store, now
 from .provider import CodexProvider
@@ -332,29 +333,7 @@ async def diagnostics():
         checks["codex_sandbox"] = {"ready": True}
     except Exception as e:
         checks["codex_sandbox"] = {"ready": False, "message": str(e)[-1200:]}
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "docker",
-            "info",
-            "--format",
-            "{{.ServerVersion}}",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        try:
-            out, err = await asyncio.wait_for(proc.communicate(), 8)
-            checks["docker"] = {
-                "ready": proc.returncode == 0,
-                "message": (out if proc.returncode == 0 else err).decode(
-                    errors="replace"
-                )[-1000:],
-            }
-        finally:
-            if proc.returncode is None:
-                proc.kill()
-                await proc.wait()
-    except Exception as e:
-        checks["docker"] = {"ready": False, "message": str(e)[-1000:]}
+    checks["project_tests"] = test_policy()
     return checks
 
 

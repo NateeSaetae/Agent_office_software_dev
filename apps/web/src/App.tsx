@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import Avatar from "./components/Avatar";
 import AppHeader from "./components/AppHeader";
+import NewProjectModal from "./components/NewProjectModal";
 import OfficeView from "./components/OfficeView";
 import { ProjectFolder, DeleteProjectModal } from "./components/ProjectActions";
 import {
@@ -45,6 +46,9 @@ import {
 import "./style.css";
 import "./office-theme.css";
 import "./workspace-theme.css";
+import "./navbar.css";
+import "./new-project-modal.css";
+import "./light-shell.css";
 
 const icons: Record<string, typeof Home> = {
   planner: Compass,
@@ -157,7 +161,8 @@ export default function App() {
   return (
     <div
       className={
-        "app " + (page === "Office" ? "office-mode" : "workspace-mode")
+        "app light-shell " +
+        (page === "Office" ? "office-mode" : "workspace-mode")
       }
       data-page={page.toLowerCase()}
     >
@@ -174,7 +179,10 @@ export default function App() {
         }
         onNewProject={() => setNewProject(true)}
       />
-      <main className={page === "Office" ? "office-main" : "workspace-main"}>
+      <main
+        key={page}
+        className={page === "Office" ? "office-main" : "workspace-main"}
+      >
         {page !== "Office" && (
           <div className="page-heading">
             <div>
@@ -760,7 +768,7 @@ export default function App() {
               </div>
               <div className="setting-row">
                 <span>Tests</span>
-                <strong>Docker · network disabled</strong>
+                <strong>Manual verification · Docker disabled</strong>
               </div>
               <div className="setting-row">
                 <span>Retry limit</span>
@@ -797,15 +805,15 @@ export default function App() {
                           "status-dot " + (value.ready ? "connected" : "failed")
                         }
                       />
-                      {key === "docker" ? "Docker Engine" : "Codex sandbox"} ·{" "}
-                      {value.ready ? "Ready" : "Needs setup"}
+                      {key === "project_tests" ? "Project tests · manual mode" : "Codex sandbox"} ·{" "}
+                      {value.ready ? (key === "project_tests" ? "Enabled" : "Ready") : "Needs setup"}
                     </strong>
+                    {key === "project_tests" && <p>{value.message}</p>}
                     {!value.ready && (
                       <>
                         <p>
                           Launch Start Office.cmd from Windows, outside this
-                          chat’s sandbox. Ensure Docker Desktop and Codex’s
-                          Windows sandbox are configured.
+                          chat’s sandbox. Ensure Codex’s Windows sandbox is configured.
                         </p>
                         <details>
                           <summary>Technical details</summary>
@@ -937,87 +945,70 @@ export default function App() {
           }}
         />
       )}
-      {newProject && (
-        <div className="modal-backdrop" onClick={() => setNewProject(false)}>
-          <section
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="new-project-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="close"
-              aria-label="Close"
-              onClick={() => setNewProject(false)}
-            >
-              <X size={20} />
-            </button>
-            <span className="modal-symbol">
-              <FolderGit2 size={26} />
-            </span>
-            <div className="eyebrow">A NEW BEGINNING</div>
-            <h2 id="new-project-title">What shall we build?</h2>
-            <p>Give your team a workspace and a clear brief.</p>
-            <form
-              onSubmit={(e: FormEvent<HTMLFormElement>) => {
-                e.preventDefault();
-                const f = new FormData(e.currentTarget);
-                void action(async () => {
-                  const p = await api<{ id: string }>("/projects", {
-                    name: f.get("name"),
-                    workspace: f.get("workspace"),
-                    requirement: f.get("requirement"),
-                  });
-                  setProjectId(p.id);
-                  setNewProject(false);
-                  changePage("Projects");
-                });
-              }}
-            >
-              <label>
-                Project name
-                <input
-                  name="name"
-                  required
-                  autoFocus
-                  maxLength={100}
-                  placeholder="e.g. My next great app"
-                />
-              </label>
-              <label>
-                Workspace path <span>OPTIONAL</span>
-                <input
-                  name="workspace"
-                  placeholder="Leave empty to create a dedicated workspace"
-                />
-                <small>
-                  Use a dedicated folder. Source files are shared with Codex
-                  when you run an agent.
-                </small>
-              </label>
-              <label>
-                Your brief
-                <textarea
-                  name="requirement"
-                  required
-                  minLength={5}
-                  rows={5}
-                  maxLength={20000}
-                  placeholder="What would you like to build? Include the features and what a good result looks like."
-                />
-              </label>
-              <div className="form-note">
-                <ShieldCheck size={15} />
-                You review the plan and approve source changes.
-              </div>
-              <button className="primary full" type="submit">
-                Create project <ArrowRight size={16} />
-              </button>
-            </form>
-          </section>
-        </div>
-      )}
+      <NewProjectModal open={newProject} onClose={() => setNewProject(false)}>
+        <span className="modal-symbol">
+          <FolderGit2 size={26} />
+        </span>
+        <div className="eyebrow">A NEW BEGINNING</div>
+        <h2 id="new-project-title">What shall we build?</h2>
+        <p>Give your team a workspace and a clear brief.</p>
+        <form
+          onSubmit={(e: FormEvent<HTMLFormElement>) => {
+            e.preventDefault();
+            const f = new FormData(e.currentTarget);
+            void action(async () => {
+              const p = await api<{ id: string }>("/projects", {
+                name: f.get("name"),
+                workspace: f.get("workspace"),
+                requirement: f.get("requirement"),
+              });
+              setProjectId(p.id);
+              setNewProject(false);
+              changePage("Projects");
+            });
+          }}
+        >
+          <label>
+            Project name
+            <input
+              name="name"
+              required
+              autoFocus
+              maxLength={100}
+              placeholder="e.g. My next great app"
+            />
+          </label>
+          <label>
+            Workspace path <span>OPTIONAL</span>
+            <input
+              name="workspace"
+              placeholder="Leave empty to create a dedicated workspace"
+            />
+            <small>
+              Use a dedicated folder. Source files are shared with Codex when
+              you run an agent.
+            </small>
+          </label>
+          <label>
+            Your brief
+            <textarea
+              name="requirement"
+              required
+              minLength={5}
+              rows={5}
+              maxLength={20000}
+              placeholder="What would you like to build? Include the features and what a good result looks like."
+            />
+          </label>
+          <div className="form-note">
+            <ShieldCheck size={15} />
+            You review the plan and approve source changes.
+          </div>
+          <button className="primary full" type="submit">
+            Create project <ArrowRight size={16} />
+          </button>
+        </form>
+      </NewProjectModal>
       {approval && (
         <div className="modal-backdrop">
           <section

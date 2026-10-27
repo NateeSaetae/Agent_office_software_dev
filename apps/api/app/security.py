@@ -1,11 +1,7 @@
 """Application-owned tools. No arbitrary host shell execution."""
 
 from __future__ import annotations
-import asyncio
 import os
-import re
-import shutil
-import tempfile
 from pathlib import Path
 
 SOURCE_EXTENSIONS = {
@@ -107,89 +103,40 @@ def files(root: Path) -> list[str]:
     return result
 
 
-async def _docker_test(root: Path, suite: str, timeout: int = 120) -> dict:
-    """Fixed commands only; untrusted tests run without host credentials/network."""
-    choices = {
-        "python": ("python:3.12-slim", ["python", "-m", "unittest", "discover", "-v"]),
-        "node": ("node:22-slim", ["node", "--test"]),
+def devops_config_path(relative: str) -> bool:
+    """DevOps may prepare local build/run configuration, never containers."""
+    path = Path(relative)
+    name = path.name.lower()
+    if name.startswith(("dockerfile", "docker-compose", "compose.")) or name == ".dockerignore" or name in {
+        "docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"
+    }:
+        return False
+    return relative.startswith(("infra/", ".github/workflows/", "scripts/", "docs/")) or name in {
+        "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
+        "pyproject.toml", "requirements.txt", "requirements-dev.txt",
+        "tsconfig.json", "tsconfig.app.json", "tsconfig.node.json",
+        "vite.config.ts", "vite.config.js", "vitest.config.ts", "vitest.config.js",
+        ".nvmrc", ".node-version", "makefile", "readme.md"
     }
-    if suite not in choices:
+
+
+def test_policy() -> dict:
+    return {
+        "ready": True,
+        "mode": "manual",
+        "message": "Docker is disabled. Run project build and test commands manually in its workspace. Automated project test execution is unavailable; no host shell fallback is used.",
+    }
+
+
+async def run_tests(root: Path, suite: str, timeout: int = 120) -> dict:
+    """No container or arbitrary host process execution in manual mode."""
+    if suite not in {"python", "node"}:
         raise ValueError("Unknown test suite")
-    image, command = choices[suite]
-    import uuid
-
-    name = f"natee-test-{uuid.uuid4().hex[:12]}"
-    argv = [
-        "docker",
-        "run",
-        "--name",
-        name,
-        "--rm",
-        "--network=none",
-        "--read-only",
-        "--cap-drop=ALL",
-        "--security-opt=no-new-privileges",
-        "--pids-limit=128",
-        "--memory=512m",
-        "--cpus=1",
-        "--user=65534:65534",
-        "--tmpfs",
-        "/tmp:rw,noexec,nosuid,size=64m",
-        "--mount",
-        f"type=bind,source={root},target=/workspace,readonly",
-        "-w",
-        "/workspace",
-        "-e",
-        "PYTHONDONTWRITEBYTECODE=1",
-        image,
-        *command,
-    ]
-    proc = await asyncio.create_subprocess_exec(
-        *argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT
-    )
-    try:
-        output, _ = await asyncio.wait_for(proc.communicate(), timeout)
-        decoded = output.decode(errors="replace")[-30000:]
-        match = (
-            re.search(r"Ran (\d+) tests?", decoded)
-            if suite == "python"
-            else re.search(r"# tests (\d+)", decoded)
-        )
-        count = int(match.group(1)) if match else 0
-        return {
-            "exit_code": proc.returncode if count > 0 else 1,
-            "process_exit_code": proc.returncode,
-            "test_count": count,
-            "output": decoded
-            if count > 0
-            else decoded + "\nNo executed tests detected.",
-            "suite": suite,
-        }
-    finally:
-        if proc.returncode is None:
-            proc.kill()
-            await proc.wait()
-        try:
-            cleanup = await asyncio.create_subprocess_exec(
-                "docker",
-                "rm",
-                "-f",
-                name,
-                stdout=asyncio.subprocess.DEVNULL,
-                stderr=asyncio.subprocess.DEVNULL,
-            )
-            await asyncio.wait_for(cleanup.wait(), 10)
-        except (OSError, TimeoutError):
-            pass
-
-
-async def docker_test(root: Path, suite: str, timeout: int = 120) -> dict:
-    # Only approved source types are staged; .env/credentials are never mounted.
-    with tempfile.TemporaryDirectory(prefix="natee-tests-") as temp:
-        stage = Path(temp)
-        for relative in files(root):
-            source = safe_path(root, relative)
-            target = stage / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(source, target)
-        return await _docker_test(stage, suite, timeout)
+    return {
+        "executed": False,
+        "mode": "manual",
+        "exit_code": None,
+        "test_count": 0,
+        "suite": suite,
+        "output": test_policy()["message"],
+    }

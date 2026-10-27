@@ -23,7 +23,9 @@ const { DESKS, BREAK_SPOTS, findPath, isWalkable } = require(
   path.join(out, "navigation.cjs"),
 );
 const { OfficeSimulation } = require(path.join(out, "simulation.cjs"));
-const { applyCharacterFrame } = require(path.join(out, "animation.cjs"));
+const { applyCharacterFrame, shouldSitAtDesk, seatedFrame } = require(
+  path.join(out, "animation.cjs"),
+);
 const THREE = require(path.join(root, "apps/web/node_modules/three"));
 let checks = 0;
 // Use Three's real UV transform: left must mirror the same frame, never a
@@ -55,6 +57,41 @@ for (let row = 0; row < 6; row++) {
     checks++;
   }
 }
+// Expanded atlas must keep each left/right frame inside its own cell.
+for (let row = 0; row < 6; row++)
+  for (let frame = 0; frame < 12; frame++) {
+    const texture = new THREE.Texture();
+    for (const facing of [-1, 1]) {
+      applyCharacterFrame(texture, frame, row, facing, 12);
+      texture.updateMatrix();
+      const uv = texture.transformUv(new THREE.Vector2(0.2, 0.5));
+      assert.ok(uv.x > frame / 12 && uv.x < (frame + 1) / 12);
+      assert.ok(uv.y > row / 6 && uv.y < (row + 1) / 6);
+    }
+    texture.dispose();
+    checks++;
+  }
+for (const status of ["running", "queued", "awaiting_approval"]) {
+  assert.equal(shouldSitAtDesk(true, status, false, DESKS[0], DESKS[0]), true);
+  assert.equal(shouldSitAtDesk(true, status, true, DESKS[0], DESKS[0]), false);
+  assert.equal(
+    shouldSitAtDesk(false, status, false, DESKS[0], DESKS[0]),
+    false,
+  );
+  assert.equal(
+    shouldSitAtDesk(true, status, false, BREAK_SPOTS[0], DESKS[0]),
+    false,
+  );
+  checks++;
+}
+for (const status of ["idle", "failed", "blocked", "completed"])
+  assert.equal(shouldSitAtDesk(true, status, false, DESKS[0], DESKS[0]), false);
+assert.equal(seatedFrame(0, 0, 0, true), 8);
+assert.equal(seatedFrame(0.6, 0, 0, true), 9);
+assert.equal(seatedFrame(1, 0, 0, true), 10);
+assert.equal(seatedFrame(1, 0.25, 0, true), 11);
+assert.equal(seatedFrame(1, 0.25, 0, false), 10);
+checks++;
 const directionSim = new OfficeSimulation(["planner"]);
 directionSim.sync([{ id: "planner", status: "idle" }], true);
 const walker = directionSim.actors[0];

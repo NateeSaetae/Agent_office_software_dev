@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from .agents import BASE, INSTRUCTIONS
-from .security import safe_path, files, docker_test
+from .security import safe_path, files, run_tests, devops_config_path
 from .store import Store, now
 from .provider import Provider
 
@@ -376,22 +376,9 @@ class Orchestrator:
                     ):
                         raise ValueError("QA can propose test files only")
                     if task["agent_id"] == "devops" and any(
-                        not (
-                            c.path.startswith(("infra/", ".github/workflows/"))
-                            or Path(c.path).name
-                            in {
-                                "Dockerfile",
-                                "docker-compose.yml",
-                                "compose.yaml",
-                                "compose.yml",
-                                ".dockerignore",
-                            }
-                        )
-                        for c in result.changes
+                        not devops_config_path(c.path) for c in result.changes
                     ):
-                        raise ValueError(
-                            "DevOps can propose infrastructure configuration only"
-                        )
+                        raise ValueError("DevOps can propose local build configuration, scripts and documentation only; Docker is disabled")
                     proposals = []
                     if len({c.path for c in result.changes}) != len(result.changes):
                         raise ValueError("Duplicate change paths")
@@ -458,36 +445,29 @@ class Orchestrator:
                         message="Applying approved result",
                     )
                     if result.test_suite != "none":
-                        if not await self.approval(
-                            task,
-                            "tests",
-                            {
-                                "suite": result.test_suite,
-                                "network": "none",
-                                "mount": "read-only",
-                                "timeout_seconds": 120,
-                            },
-                        ):
-                            raise ValueError("Tests rejected")
-                        task["status"] = "running"
-                        self.store.save(
-                            "tasks",
-                            task,
-                            "agent.testing",
-                            message="Running sandbox tests",
-                        )
-                        outcome = await docker_test(root, result.test_suite)
+                        outcome = await run_tests(root, result.test_suite)
                         task["result"]["test_result"] = outcome
+                        if outcome.get("executed") is False:
+                            result.status = "blocked"
+                            task["result"]["status"] = "blocked"
+                            task["result"]["summary"] = "Manual test verification required; Docker and automated project tests are disabled"
+                            task["result"]["findings"].append(outcome["output"])
+                            task["status"] = "blocked"
+                            emit("tests.manual_required", tool="tests.manual", **outcome)
+                            self.store.save("tasks", task, "task.blocked", message=task["result"]["summary"])
+                            return
                         emit("tool.completed", tool="sandbox.test", **outcome)
                         if outcome["exit_code"] != 0:
                             raise ValueError(
                                 "Sandbox tests failed; see execution output"
                             )
                     elif task["agent_id"] == "qa":
+                        result.summary = "Manual QA verification required; no project tests were executed"
+                        task["result"]["summary"] = result.summary
                         result.status = "blocked"
                         task["result"]["status"] = "blocked"
                         task["result"]["findings"].append(
-                            "QA requires actual sandbox test execution"
+                            "QA execution requires manual verification. Docker and automated project tests are disabled; no tests were run."
                         )
                     if result.status == "blocked":
                         task["status"] = "blocked"

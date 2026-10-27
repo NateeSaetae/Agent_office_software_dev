@@ -1,0 +1,111 @@
+/* One shared Office-style navigation across all pages. */
+.app .app-header {
+  font-family: "DM Sans", sans-serif;
+  line-height: 1.2;
+}
+.app .app-header .top-navigation {
+  position: relative;
+  padding: 6px 0;
+  gap: 6px;
+}
+.app .app-header .top-nav-item {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  margin: 0;
+  min-width: 74px;
+  padding: 6px 12px;
+  font-size: 12px;
+  z-index: 1;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+.app .app-header .top-nav-item.active {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: #f3fbff;
+  text-shadow: 0 0 10px #63bdff66;
+}
+.app .app-header .top-nav-item:hover {
+  background-color: #5ab5ff12;
+}
+.app .app-header .top-nav-item.active:hover {
+  background-color: transparent;
+}
+.nav-selection-indicator {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  border: 1px solid #58b9ffb3;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #1b4b7d, #13365d);
+  box-shadow:
+    inset 0 1px 0 #c1e5ff18,
+    0 0 14px #168fff1c;
+  pointer-events: none;
+  transition:
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.15s ease;
+  will-change: transform;
+}
+.app .app-header .top-nav-item.active svg {
+  animation: nav-icon-enter 0.28s ease-out both;
+}
+.app main.workspace-main {
+  animation: workspace-page-enter 0.22s ease-out both;
+}
+@keyframes nav-icon-enter {
+  from {
+    transform: translateY(3px) scale(0.88);
+  }
+  to {
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes workspace-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 1280px) {
+  .app .app-header .top-nav-item {
+    min-width: 60px;
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 760px) {
+  .app .app-header .top-navigation {
+    padding: 5px 0;
+    gap: 4px;
+  }
+  .app .app-header .top-nav-item {
+    min-width: 50px;
+    padding: 5px 6px;
+    font-size: 10px;
+    border-radius: 10px;
+  }
+  .nav-selection-indicator {
+    top: 5px;
+    bottom: 5px;
+    border-radius: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app .app-header .nav-selection-indicator,
+  .app .app-header .top-nav-item {
+    transition: none;
+  }
+  .app .app-header .top-nav-item.active svg,
+  .app main.workspace-main {
+    animation: none;
+  }
+}

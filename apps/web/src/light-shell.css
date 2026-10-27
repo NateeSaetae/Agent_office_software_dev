@@ -1,0 +1,660 @@
+/* Modern rounded shell in the original dark navy office palette. */
+.app.light-shell {
+  --line: #1b2e45;
+  --green: #1766ed;
+  color: #dee9f8;
+}
+.app.light-shell :is(button, a):focus-visible {
+  outline: 2px solid #3b96e8;
+  outline-offset: 3px;
+}
+.app.light-shell .app-header {
+  background: #142337f5;
+  border-bottom: 1px solid #1b2e45;
+  box-shadow: 0 3px 20px #dee9f812;
+  backdrop-filter: blur(18px);
+}
+.app.light-shell .app-header .brand {
+  color: #dee9f8;
+  font-size: 19px;
+  letter-spacing: 1px;
+}
+.app.light-shell .app-header .brand small {
+  color: #9bb4d1;
+  letter-spacing: 1.5px;
+}
+.app.light-shell .app-header .brand-mark {
+  color: #258eea;
+  filter: none;
+  background: #142337;
+  border: 1px solid #1b2e45;
+  border-radius: 13px;
+}
+.app.light-shell .app-header .brand-mark span {
+  display: none;
+}
+.app.light-shell .app-header .top-navigation {
+  padding: 10px 0;
+  gap: 5px;
+}
+.app.light-shell .app-header .top-nav-item {
+  flex-direction: row;
+  gap: 8px;
+  padding: 8px 13px;
+  min-width: 88px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9bb4d1;
+}
+.app.light-shell .app-header .top-nav-item svg {
+  width: 19px;
+  height: 19px;
+  filter: none;
+}
+.app.light-shell .app-header .top-nav-item.active {
+  color: #1869da;
+  text-shadow: none;
+}
+.app.light-shell .app-header .top-nav-item:hover {
+  color: #1869da;
+  background: #142337;
+}
+.app.light-shell .app-header .top-nav-item.active:hover {
+  background: transparent;
+}
+.app.light-shell .nav-selection-indicator {
+  top: 10px;
+  bottom: 10px;
+  border-color: #1b2e45;
+  background: linear-gradient(130deg, #142337, #1b2e45);
+  box-shadow:
+    inset 0 -2px 0 #38bfee,
+    0 3px 9px #2170c908;
+}
+.app.light-shell .new-project-shortcut {
+  background: #2376ed;
+  color: #fff;
+  border: 1px solid #2376ed;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 12px;
+  box-shadow: 0 3px 10px #2478ed1f;
+}
+.app.light-shell .office-clock {
+  background: #142337;
+  border-color: #1b2e45;
+  color: #9bb4d1;
+  border-radius: 13px;
+  font-size: 11px;
+}
+.app.light-shell .office-clock strong {
+  color: #dee9f8;
+  font-size: 14px;
+}
+.app.light-shell .office-clock > svg {
+  color: #21a9e4;
+  filter: none;
+}
+.app.light-shell .header-notifications {
+  background: #142337;
+  border: 1px solid #1b2e45;
+  color: #9bb4d1;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+}
+.app.light-shell .header-owner {
+  color: #9bb4d1;
+}
+.app.light-shell .header-owner .avatar.small {
+  border-color: #1b2e45;
+  border-radius: 11px;
+  background: #142337;
+}
+.app.light-shell .connection-dot.online {
+  background: #20bc97;
+  box-shadow: 0 0 0 2px #1b2e45;
+}
+/* Floating office panels: solid readable surfaces over the detailed scene. */
+.light-shell .office-hud {
+  background: #142337f5;
+  border: 1px solid #1b2e45;
+  border-radius: 20px;
+  box-shadow:
+    0 8px 28px #dee9f821,
+    inset 0 1px 0 #ffffff0a;
+  backdrop-filter: blur(16px);
+  color: #dee9f8;
+}
+.light-shell .agent-status-panel {
+  width: 270px;
+  padding: 16px 13px 12px;
+}
+.light-shell .hud-heading h2 {
+  color: #9bb4d1;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.light-shell .hud-heading h2 > svg {
+  color: #338fe4;
+}
+.light-shell .hud-heading > button {
+  color: #9bb4d1;
+  border-radius: 50%;
+  width: 27px;
+  height: 27px;
+  background: #142337;
+}
+.light-shell .hud-heading > button:hover {
+  color: #1766d5;
+  background: #1b2e45;
+}
+.light-shell .office-team-list {
+  gap: 8px;
+  margin-top: 14px;
+  scrollbar-width: none;
+}
+.light-shell .office-team-list::-webkit-scrollbar {
+  display: none;
+}
+.light-shell .office-agent-card {
+  padding: 9px 10px;
+  gap: 11px;
+  min-height: 70px;
+  background: #142337;
+  border: 1px solid #1b2e45;
+  border-radius: 15px;
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.light-shell .office-agent-card:hover,
+.light-shell .office-agent-card.selected {
+  background: #142337;
+  border-color: #314d6c;
+  box-shadow: 0 2px 8px #3284d30c;
+}
+.light-shell .office-agent-card .avatar {
+  width: 45px;
+  height: 46px;
+  background: linear-gradient(135deg, #142337, #142337);
+  border-color: #1b2e45;
+  border-radius: 12px;
+}
+.light-shell .office-agent-card strong {
+  color: #dee9f8;
+  font-size: 14px;
+  font-weight: 650;
+}
+.light-shell .office-agent-card small {
+  color: #9bb4d1;
+  font-size: 11px;
+  margin-top: 5px;
+}
+.light-shell .office-agent-card > svg {
+  color: #9bb4d1;
+}
+.light-shell .office-agent-card small > .idle,
+.light-shell .character-name > .idle {
+  background: #2aa8e6;
+}
+.light-shell .office-agent-card small > .running,
+.light-shell .character-name > .running {
+  background: #dee9f8;
+  box-shadow: none;
+}
+.light-shell .panel-connection {
+  color: #9bb4d1;
+  font-size: 11px;
+  padding-top: 13px;
+}
+.light-shell .current-task-compact {
+  border-color: #1b2e45;
+}
+.light-shell .current-task-compact > span {
+  color: #9bb4d1;
+  font-size: 10px;
+}
+.light-shell .current-task-compact > strong {
+  color: #dee9f8;
+  font-size: 14px;
+  max-height: 45px;
+}
+.light-shell .current-task-compact > small {
+  color: #2180df;
+  font-size: 12px;
+}
+.light-shell .open-agent-status {
+  color: #dee9f8;
+  border-radius: 999px;
+  font-size: 13px;
+}
+.light-shell .open-agent-status > span {
+  color: #2473cc;
+  background: #1b2e45;
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 3px 7px;
+}
+.light-shell .office-controls {
+  padding: 8px 10px;
+  gap: 10px;
+  border-radius: 999px;
+}
+.light-shell .office-controls button {
+  font-size: 12px;
+  color: #9bb4d1;
+  padding: 6px 8px;
+  border-radius: 999px;
+}
+.light-shell .office-controls button:hover {
+  background: #142337;
+}
+.light-shell .office-controls button[aria-pressed="true"] {
+  color: #2176dc;
+  background: #1b2e45;
+}
+.light-shell .office-live {
+  color: #9bb4d1;
+  font-size: 10px;
+  letter-spacing: 0.8px;
+}
+.light-shell .office-controls-separator {
+  background: #1b2e45;
+}
+.light-shell .office-recent {
+  width: 290px;
+  padding: 15px;
+}
+.light-shell .office-event {
+  font-size: 12px;
+  color: #9bb4d1;
+  margin-top: 8px;
+  gap: 8px;
+}
+.light-shell .office-event time {
+  font-size: 10px;
+  color: #9bb4d1;
+}
+.light-shell .office-event > i {
+  background: #23bc9c;
+}
+.light-shell .office-event > .error {
+  background: #e4768a;
+}
+.light-shell .office-no-events {
+  color: #9bb4d1;
+  font-size: 12px;
+}
+.light-shell .office-ambient-caption {
+  background: #142337ed;
+  border: 1px solid #1b2e45;
+  color: #9bb4d1;
+  border-radius: 999px;
+  font-size: 11px;
+  box-shadow: 0 3px 16px #dee9f812;
+}
+.light-shell .office-ambient-caption > svg {
+  color: #2d9ddf;
+}
+.light-shell .active-project-hud {
+  width: 280px;
+  padding: 16px;
+}
+.light-shell .active-project-hud .hud-heading > span {
+  color: #9bb4d1;
+  font-size: 12px;
+}
+.light-shell .active-project-hud select {
+  background: #142337;
+  color: #dee9f8;
+  border: 1px solid #1b2e45;
+  border-radius: 999px;
+  font-size: 13px;
+  padding: 10px 13px;
+}
+.light-shell .hud-project-link {
+  color: #277fda;
+  font-size: 12px;
+}
+.light-shell .hud-create-project {
+  background: linear-gradient(120deg, #142337, #1b2e45);
+  border-color: #1b2e45;
+  border-radius: 15px;
+  padding: 14px;
+  color: #dee9f8;
+}
+.light-shell .hud-create-project > span {
+  font-size: 13px;
+}
+.light-shell .hud-create-project small {
+  color: #2683db;
+  font-size: 12px;
+}
+.light-shell .character-name {
+  background: #142337f5;
+  color: #dee9f8;
+  border: 1px solid #1b2e45;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px #dee9f81c;
+  padding: 6px 8px;
+}
+.light-shell .character-name strong {
+  font-size: 10px;
+  font-weight: 700;
+}
+.light-shell .character-name span {
+  color: #9bb4d1;
+  font-size: 9px;
+}
+.light-shell .character-name.selected {
+  border-color: #319ee7;
+  box-shadow: 0 0 0 2px #1b2e4588;
+}
+.light-shell .desk-plaque {
+  background: #142337f0;
+  border-color: #314d6c;
+  border-radius: 7px;
+  color: #dee9f8;
+  box-shadow: 0 2px 5px #dee9f817;
+}
+.light-shell .pixel-office-loading,
+.light-shell .pixel-office-fallback {
+  background: #142337;
+  color: #9bb4d1;
+}
+.light-shell .pixel-office-loading > span {
+  border-color: #1b2e45;
+  border-top-color: #2b9aea;
+}
+/* The teammate drawer shares the same treatment from Office and Agents. */
+.app.light-shell .drawer-shade {
+  background: #dee9f83b;
+  backdrop-filter: blur(5px);
+}
+.app.light-shell .agent-drawer {
+  inset: 12px 12px 12px auto;
+  width: 430px;
+  max-width: calc(100vw - 24px);
+  background: #142337;
+  color: #dee9f8;
+  border: 1px solid #1b2e45;
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: -12px 0 55px #dee9f820;
+  scrollbar-width: thin;
+  scrollbar-color: #1b2e45 transparent;
+}
+.app.light-shell .agent-drawer > .close {
+  position: sticky;
+  top: 0;
+  right: 0;
+  float: right;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  color: #9bb4d1;
+  background: #142337;
+  border-radius: 50%;
+}
+.app.light-shell .agent-drawer > .avatar {
+  width: 88px;
+  height: 92px;
+  background: linear-gradient(140deg, #142337, #142337);
+  border-color: #1b2e45;
+  border-radius: 21px;
+}
+.app.light-shell .agent-drawer .eyebrow {
+  color: #9bb4d1;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+}
+.app.light-shell .agent-drawer h2 {
+  color: #dee9f8;
+  font-size: 29px;
+}
+.app.light-shell .agent-drawer > p {
+  color: #9bb4d1;
+  font-size: 16px;
+  line-height: 1.7;
+  max-height: 180px;
+  overflow: auto;
+}
+.app.light-shell .agent-drawer h3 {
+  color: #9bb4d1;
+  border-color: #1b2e45;
+  font-size: 12px;
+  letter-spacing: 0.9px;
+}
+.app.light-shell .agent-drawer h4 {
+  color: #dee9f8;
+  font-size: 16px;
+}
+.app.light-shell .agent-drawer .status-pill {
+  color: #9bb4d1;
+  background: #142337;
+  border: 1px solid #1b2e45;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.app.light-shell .agent-drawer .status-pill:is(.running, .queued) {
+  color: #1977cf;
+  background: #1b2e45;
+  border-color: #1b2e45;
+}
+.app.light-shell .agent-drawer .status-pill.completed {
+  color: #dee9f8;
+  background: #1b2e45;
+  border-color: #1b2e45;
+}
+.app.light-shell .agent-drawer .status-pill:is(.blocked, .awaiting_approval) {
+  color: #dee9f8;
+  background: #1b2e45;
+  border-color: #314d6c;
+}
+.app.light-shell :is(.drawer-empty, .history-item, .agent-log) {
+  background: #142337;
+  border: 1px solid #1b2e45;
+  border-radius: 16px;
+  padding: 17px;
+}
+.app.light-shell .drawer-empty {
+  color: #65a4d5;
+}
+.app.light-shell .drawer-empty p {
+  color: #9bb4d1;
+  font-size: 14px;
+}
+.app.light-shell .history-item strong {
+  color: #dee9f8;
+  font-size: 14px;
+}
+.app.light-shell :is(.history-item span, .agent-log small) {
+  color: #9bb4d1;
+  font-size: 12px;
+}
+.app.light-shell :is(.history-item, .agent-log) p {
+  color: #9bb4d1;
+  font-size: 14px;
+  line-height: 1.8;
+  max-height: 190px;
+  overflow: auto;
+}
+.app.light-shell .agent-drawer pre {
+  background: #142337;
+  color: #dee9f8;
+  border: 1px solid #1b2e45;
+  border-radius: 14px;
+  font-size: 13px;
+}
+@media (max-width: 1100px) {
+  .app.light-shell .app-header .top-nav-item {
+    flex-direction: column;
+    gap: 4px;
+    min-width: 60px;
+    padding: 5px 9px;
+    font-size: 11px;
+  }
+  .app.light-shell .app-header .top-navigation {
+    padding: 6px 0;
+  }
+  .app.light-shell .nav-selection-indicator {
+    top: 6px;
+    bottom: 6px;
+  }
+}
+@media (max-width: 760px) {
+  .app.light-shell .app-header .brand {
+    min-width: 37px;
+  }
+  .app.light-shell .app-header .brand-mark {
+    background: none;
+    border: 0;
+  }
+  .app.light-shell .app-header .top-navigation {
+    gap: 4px;
+    padding: 5px 0;
+  }
+  .app.light-shell .app-header .top-nav-item {
+    min-width: 50px;
+    padding: 5px 6px;
+    font-size: 10px;
+  }
+  .app.light-shell .new-project-shortcut {
+    padding: 7px;
+  }
+  .app.light-shell .header-notifications {
+    width: 29px;
+    height: 29px;
+  }
+  .app.light-shell .nav-selection-indicator {
+    top: 5px;
+    bottom: 5px;
+  }
+  .light-shell .agent-status-panel {
+    width: 235px;
+    padding: 12px 10px;
+  }
+  .light-shell .office-agent-card {
+    min-height: 60px;
+    padding: 7px;
+    gap: 8px;
+  }
+  .light-shell .office-agent-card .avatar {
+    width: 36px;
+    height: 39px;
+  }
+  .light-shell .office-agent-card strong {
+    font-size: 13px;
+  }
+  .light-shell .office-agent-card small {
+    font-size: 10px;
+  }
+  .light-shell .office-controls {
+    padding: 6px;
+    gap: 4px;
+  }
+  .light-shell .office-controls button {
+    padding: 5px;
+  }
+  .light-shell .active-project-hud {
+    width: 220px;
+    padding: 12px;
+  }
+  .light-shell .office-ambient-caption {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .light-shell .office-agent-card {
+    transition: none;
+  }
+}
+
+.app.light-shell .new-project-shortcut { background: #183d66; border-color: #315b83; color: #e4efff; box-shadow: 0 3px 10px #00000020; }
+.app.light-shell .app-header { background: #0d1a2cf5; box-shadow: 0 3px 20px #00000026; }
+.app.light-shell .nav-selection-indicator { background: linear-gradient(130deg, #204c77, #153653); border-color: #388dcc; box-shadow: inset 0 -2px 0 #38bfee, 0 3px 9px #00000020; }
+.app.light-shell .app-header .top-nav-item.active { color: #e9f5ff; }
+.app.light-shell .app-header .top-nav-item:hover { background: #1b3551; color: #7ed6ff; }
+.app.light-shell .app-header .top-nav-item.active:hover { background: transparent; }
+.light-shell .office-hud { box-shadow: 0 8px 28px #00000038, inset 0 1px 0 #ffffff09; }
+.app.light-shell .agent-drawer { box-shadow: -12px 0 55px #00000038; }
+
+/* Hide scrollbars consistently without changing scroll behavior. */
+html,
+body,
+#root,
+.app,
+.app * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar,
+.app::-webkit-scrollbar,
+.app *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Morph the panel into its compact button from the same top-left anchor. */
+.light-shell .agent-status-panel {
+  transform-origin: top left;
+  transition: clip-path 460ms cubic-bezier(.65, 0, .25, 1), visibility 460ms;
+  will-change: clip-path;
+}
+.light-shell .agent-status-panel.team-expanded {
+  transform: none;
+  opacity: 1;
+  clip-path: inset(0 0 0 0 round 20px);
+  visibility: visible;
+}
+.light-shell .agent-status-panel.team-collapsed {
+  transform: none;
+  opacity: 1;
+  clip-path: inset(0 calc(100% - 170px) calc(100% - 48px) 0 round 24px);
+  visibility: hidden;
+  pointer-events: none;
+}
+.light-shell .agent-status-panel > * {
+  transition: opacity 180ms ease, transform 380ms cubic-bezier(.22, 1, .36, 1);
+}
+.light-shell .team-expanded > * {
+  opacity: 1;
+  transform: scale(1);
+  transition-delay: 120ms;
+}
+.light-shell .team-collapsed > * {
+  opacity: 0;
+  transform: scale(.97);
+  transition-delay: 0ms;
+}
+.light-shell .open-agent-status {
+  width: 170px;
+  height: 48px;
+  justify-content: center;
+  transition: opacity 180ms ease, visibility 180ms;
+}
+.light-shell .open-agent-status.team-trigger-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.light-shell .open-agent-status.team-trigger-visible {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 280ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .light-shell .agent-status-panel,
+  .light-shell .agent-status-panel > *,
+  .light-shell .open-agent-status {
+    transition: none;
+  }
+}

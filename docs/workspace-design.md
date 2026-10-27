@@ -22,8 +22,12 @@ Project briefs, workspace paths, task descriptions, acceptance criteria, results
 - A task column containing 4,901px of cards remained 392px high and scrolled independently.
 - A 1,971px project brief remained in a 144px-high area before the final compact brief adjustment.
 - Tasks desktop body measured 1600×1000 with no document overflow in either direction.
-- Mobile layout checked separately; navigation wraps into its own scrollable row, and cards stack vertically.
+- The shared Office navigation scrolls horizontally on narrow screens, revealing the active menu item; cards stack vertically.
 - Create/delete dialogs inspected without creating or deleting user projects.
 - Layout fixtures are stored in work/qa-workspace-theme, separate from the user's database. No AI runs were started for visual testing.
 
 Verification: npm run build (TypeScript and Vite) and interactive browser checks. No backend behavior changed.
+
+## Shared navigation
+
+All pages use the dark Office navbar. A single rounded rectangular selection frame slides between active items, with a short icon transition and a subtle workspace page fade. Reduced-motion preferences disable these animations. Workspace content keeps the white/blue theme.

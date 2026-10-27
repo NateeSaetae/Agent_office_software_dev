@@ -19,7 +19,7 @@ Local AI Agent Office — React/TypeScript + React Three Fiber + FastAPI + SQLit
 - Browser: ฉาก WebGL และหน้า UI เปิดได้
 - Authentication: ตรวจพบ ChatGPT Plus ผ่าน SDK จริง
 - Full Codex run: ยังตรวจสอบไม่จบ เนื่องจาก Process ที่เรียกจากแชตนี้เข้า Windows Sandbox Provisioning Service ไม่ได้
-- Docker execution: ยังตรวจสอบจริงไม่จบ เนื่องจาก Docker named pipe ปฏิเสธสิทธิ์ในสภาพแวดล้อมทดสอบ
+- Docker: ปิดการใช้งานแล้ว ไม่ต้องติดตั้งหรือเปิด Docker Desktop
 
 ห้ามตีความผล Unit/Contract Tests ว่าเป็นผลการรัน LLM หรือ Docker ครบวงจร ตัว FakeProvider ใช้เฉพาะในไฟล์ทดสอบ ไม่มี Demo Provider ในแอปจริง
 
@@ -29,12 +29,7 @@ Local AI Agent Office — React/TypeScript + React Three Fiber + FastAPI + SQLit
 
 สำหรับ Codex บน Windows แอปเลือก MXC เมื่อเครื่องรองรับ และใช้ elevated sandbox เป็น fallback หากยังไม่ได้ Provision ให้เปิด **Setup Sandbox.cmd** ด้วยตัวเอง ขั้นตอนนี้อาจมี UAC และสร้าง Sandbox Accounts/Firewall Configuration ของ Codex ตามกระบวนการทางการ แอปจะไม่ปิด Sandbox เพื่อเลี่ยงข้อผิดพลาด
 
-เปิด Docker Desktop ในโหมด Linux Containers แล้วเตรียม Images:
-
-    docker pull python:3.12-slim
-    docker pull node:22-slim
-
-Tests ภายใน Container ปิด Network และไม่ติดตั้ง Dependencies เพิ่ม ปัจจุบันรองรับ Python standard-library unittest และ Node built-in test runner เท่านั้น
+DevOps ตรวจ Dependencies, Build Configuration และเตรียมคำสั่งรัน Local ได้โดยไม่ใช้ Docker ระบบไม่เรียก Container หรือรัน Source ของโปรเจกต์ผ่าน Host Shell อัตโนมัติ ส่วน QA ยังเสนอไฟล์ทดสอบได้ แต่การ Execute Tests ต้องตรวจด้วยตัวเองใน Project Workspace และจะแสดง Blocked รอหลักฐานแทนการรายงานว่าผ่าน
 
 เอกสารทางการ:
 - https://learn.chatgpt.com/docs/codex-sdk
@@ -44,7 +39,7 @@ Tests ภายใน Container ปิด Network และไม่ติดต
 
 ## ติดตั้งใหม่จาก Source
 
-ต้องมี Python 3.12+, Node.js 20.19+ และ Docker Desktop
+ต้องมี Python 3.12+ และ Node.js 20.19+ ไม่ต้องใช้ Docker Desktop
 
     python -m venv .venv
     .venv\Scripts\python.exe -m pip install -r apps\api\requirements.txt
@@ -88,7 +83,8 @@ check.py จะตั้ง Dependency Paths สำหรับสภาพแ�
 - Sequential Workflow, Manual Run/Retry/Cancel และจำนวน Retry สูงสุด 3 ครั้ง
 - อ่าน Source Snapshot แบบจำกัดขนาด เสนอ File Replacements และแสดง Unified Diff
 - ตรวจ Hash หลังอนุมัติก่อนเขียนไฟล์ ปฏิเสธ Path Traversal และ Links/Junctions
-- QA ขอรันคำสั่ง Test ที่กำหนดไว้ใน Docker พร้อมจำกัดสิทธิ์และทรัพยากร
+- DevOps ตรวจและเสนอ Local Build/Run Configuration โดยไม่ใช้ Docker
+- QA เสนอ Tests และคำสั่งตรวจแบบ Manual; ปิด Automated Project Test Execution ชั่วคราว
 - QA ไม่ผ่านหากไม่มี Test ถูก Execute จริง
 - เก็บ Projects, Tasks, Runs, Approvals และ Events ลง SQLite ผ่าน SQLAlchemy
 - WebSocket Replay หลัง Reconnect, Expire Approval และ Mark Interrupted หลัง Restart
@@ -122,7 +118,7 @@ check.py จะตั้ง Dependency Paths สำหรับสภาพแ�
       orchestrator.py     DAG, Workflow, Approval, Runtime Execution
       provider.py         Official Codex SDK Adapter
       agents.py           Role Definitions
-      security.py         Workspace Tools + Docker Runner
+      security.py         Workspace Tools + Manual Test Policy
       deny_native_tools.py
     apps/api/tests/       Isolated Contract/Security Tests
     apps/web/src/
