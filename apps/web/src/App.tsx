@@ -1,4 +1,7 @@
+﻿import Dropdown from "./components/Dropdown";
 import { useEffect, useState, type FormEvent } from "react";
+import AgentSettingsDrawer from "./components/AgentSettingsDrawer";
+import { useDrawerPresence } from "./useDrawerPresence";
 import {
   Activity,
   ArrowDownLeft,
@@ -30,6 +33,10 @@ import {
   Zap,
 } from "lucide-react";
 import Avatar from "./components/Avatar";
+import WorkflowDialog from "./components/WorkflowDialog";
+import "./workflow-dialog.css";
+import AgentModelSettings from "./components/AgentModelSettings";
+import "./agent-model-settings.css";
 import AppHeader from "./components/AppHeader";
 import NewProjectModal from "./components/NewProjectModal";
 import OfficeView from "./components/OfficeView";
@@ -49,6 +56,7 @@ import "./workspace-theme.css";
 import "./navbar.css";
 import "./new-project-modal.css";
 import "./light-shell.css";
+import "./drawer-motion.css";
 import "./planner-dialog.css";
 
 const icons: Record<string, typeof Home> = {
@@ -106,9 +114,10 @@ export default function App() {
     [authUrl, setAuthUrl] = useState(""),
     [approval, setApproval] = useState<Approval | null>(null),
     [clock, setClock] = useState(new Date());
+  const [workflowProject, setWorkflowProject] = useState<Project | null>(null);
+  const [agentSettingsOpen, setAgentSettingsOpen] = useState(false);
   const state = useOffice();
-  const project =
-    state.projects.find((p) => p.id === projectId);
+  const project = state.projects.find((p) => p.id === projectId);
   const projectTasks = state.tasks.filter((t) => t.project_id === project?.id);
   const visibleTasks = projectTasks.filter((t) =>
     `${t.title} ${t.description} ${t.agent_id}`
@@ -121,7 +130,9 @@ export default function App() {
       .includes(eventSearch.trim().toLowerCase()),
   );
   const pending = state.approvals.filter((a) => a.status === "pending");
-  const selected = state.agents.find((a) => a.id === state.selected);
+  const agentPanel = useDrawerPresence(state.agents.find((a) => a.id === state.selected));
+  const settingsPanel = useDrawerPresence(agentSettingsOpen ? true : null);
+  const selected = agentPanel.value;
   useEffect(() => connectOffice(), []);
   useEffect(() => {
     const close = (e: KeyboardEvent) => {
@@ -219,12 +230,17 @@ export default function App() {
                         : "Your account, environment, and office preferences."}
               </p>
             </div>
-            <div className="heading-actions">
-              <button className="primary" onClick={() => setNewProject(true)}>
+            {page === "Projects" && <div className="heading-actions">
+              <button className="primary new-project-button" onClick={() => setNewProject(true)}>
                 <Plus size={16} />
                 New project
               </button>
-            </div>
+            </div>}
+            {page === "Agents" && <div className="heading-actions">
+              <button className="secondary" onClick={() => { state.select(null); setAgentSettingsOpen(true); }}>
+                <Settings size={16} /> Agent settings
+              </button>
+            </div>}
           </div>
         )}
         {(page === "Tasks" || page === "Projects") && (
@@ -335,9 +351,7 @@ export default function App() {
                         (t) => t.project_id === p.id && t.status === "pending",
                       )
                     }
-                    onClick={() =>
-                      action(() => api("/projects/" + p.id + "/workflow", {}))
-                    }
+                    onClick={() => setWorkflowProject(p)}
                   >
                     <Play size={14} />
                     Run workflow
@@ -396,11 +410,11 @@ export default function App() {
                   onChange={(e) => setTaskSearch(e.target.value)}
                 />
               </label>
-              <select
+              <Dropdown
                 aria-label="Filter project"
                 disabled={!state.projects.length}
                 value={project?.id ?? ""}
-                onChange={(e) => setProjectId(e.target.value)}
+                onValueChange={setProjectId}
               >
                 <option value="">Default — No project selected</option>
                 {state.projects.map((p) => (
@@ -408,7 +422,7 @@ export default function App() {
                     {p.name}
                   </option>
                 ))}
-              </select>
+              </Dropdown>
               {project && (
                 <button
                   className="secondary"
@@ -422,10 +436,26 @@ export default function App() {
                 </button>
               )}
               {project && (
-                <button className="secondary" disabled={state.busy} onClick={() => {
-                  setPlannerMessage("");
-                  setPlannerProject(project);
-                }}>
+                <button
+                  className="primary"
+                  disabled={
+                    state.busy ||
+                    !projectTasks.some((t) => t.status === "pending")
+                  }
+                  onClick={() => setWorkflowProject(project)}
+                >
+                  <Play size={14} /> Run workflow
+                </button>
+              )}
+              {project && (
+                <button
+                  className="secondary"
+                  disabled={state.busy}
+                  onClick={() => {
+                    setPlannerMessage("");
+                    setPlannerProject(project);
+                  }}
+                >
                   <Compass size={14} /> คุยกับ Planner ต่อ
                 </button>
               )}
@@ -473,52 +503,66 @@ export default function App() {
                             <span>{t.agent_id.toUpperCase()}</span>
                             <span>#{t.id.slice(0, 4)}</span>
                           </div>
-                          <div className="task-card-content" tabIndex={0} aria-label={t.title + " details"}>
-                          <h4>{t.title}</h4>
-                          <p className="task-description" tabIndex={0}>
-                            {t.description}
-                          </p>
                           <div
-                            className="criteria"
+                            className="task-card-content"
                             tabIndex={0}
-                            aria-label="Acceptance criteria"
+                            aria-label={t.title + " details"}
                           >
-                            {t.acceptance_criteria.map((c, i) => (
-                              <div key={i}>
-                                <Check size={11} />
-                                {c}
-                              </div>
-                            ))}
-                          </div>
-                          {t.depends_on.length > 0 && (
-                            <small className="dependencies">
-                              {t.depends_on.length} prerequisite task(s)
-                            </small>
-                          )}
-                          {t.error && (
-                            <div className="task-error">{t.error}</div>
-                          )}
-                          {t.result && (
-                            <details>
-                              <summary>Run result</summary>
-                              <p>{t.result.summary}</p>
-                              {t.result.findings?.map((f, i) => (
-                                <p key={i}>{f}</p>
+                            <h4>{t.title}</h4>
+                            <p className="task-description" tabIndex={0}>
+                              {t.description}
+                            </p>
+                            <div
+                              className="criteria"
+                              tabIndex={0}
+                              aria-label="Acceptance criteria"
+                            >
+                              {t.acceptance_criteria.map((c, i) => (
+                                <div key={i}>
+                                  <Check size={11} />
+                                  {c}
+                                </div>
                               ))}
-                              {t.result.test_result && (
-                                <pre>{t.result.test_result.output}</pre>
-                              )}
-                            </details>
-                          )}
+                            </div>
+                            {t.depends_on.length > 0 && (
+                              <small className="dependencies">
+                                {t.depends_on.length} prerequisite task(s)
+                              </small>
+                            )}
+                            {t.error && (
+                              <div className="task-error">{t.error}</div>
+                            )}
+                            {t.result && (
+                              <details>
+                                <summary>Run result</summary>
+                                <p>{t.result.summary}</p>
+                                {t.result.findings?.map((f, i) => (
+                                  <p key={i}>{f}</p>
+                                ))}
+                                {t.result.test_result && (
+                                  <pre>{t.result.test_result.output}</pre>
+                                )}
+                              </details>
+                            )}
                           </div>
                           <div className="task-bottom">
                             <Avatar id={t.agent_id} small />
-                            {["pending", "failed", "blocked", "cancelled", "interrupted"].includes(t.status) && (
+                            {[
+                              "pending",
+                              "failed",
+                              "blocked",
+                              "cancelled",
+                              "interrupted",
+                            ].includes(t.status) && (
                               <button
                                 className="text-link"
                                 disabled={state.busy}
                                 title="Skip this task and allow dependent tasks to proceed"
-                                onClick={() => action(() => api("/tasks/" + t.id + "/skip", {}))}
+                                onClick={() =>
+                                  action(() =>
+                                    api("/tasks/" + t.id + "/skip", {}),
+                                  )
+                                }
                               >
                                 Skip task
                               </button>
@@ -548,8 +592,10 @@ export default function App() {
                                   state.busy ||
                                   t.depends_on.some(
                                     (id) =>
-                                      !["completed", "skipped"].includes(state.tasks.find((d) => d.id === id)
-                                        ?.status ?? ""),
+                                      !["completed", "skipped"].includes(
+                                        state.tasks.find((d) => d.id === id)
+                                          ?.status ?? "",
+                                      ),
                                   )
                                 }
                                 onClick={() => run(t)}
@@ -790,11 +836,11 @@ export default function App() {
               </div>
               <div className="setting-row">
                 <span>File changes</span>
-                <strong>Review & approve each batch</strong>
+                <strong>Per-action review or authorized auto workflow</strong>
               </div>
               <div className="setting-row">
                 <span>Tests</span>
-                <strong>Manual verification · Docker disabled</strong>
+                <strong>Local commands · Docker disabled</strong>
               </div>
               <div className="setting-row">
                 <span>Retry limit</span>
@@ -831,15 +877,23 @@ export default function App() {
                           "status-dot " + (value.ready ? "connected" : "failed")
                         }
                       />
-                      {key === "project_tests" ? "Project tests · manual mode" : "Codex sandbox"} ·{" "}
-                      {value.ready ? (key === "project_tests" ? "Enabled" : "Ready") : "Needs setup"}
+                      {key === "project_tests"
+                        ? "Project tests · local mode"
+                        : "Codex sandbox"}{" "}
+                      ·{" "}
+                      {value.ready
+                        ? key === "project_tests"
+                          ? "Enabled"
+                          : "Ready"
+                        : "Needs setup"}
                     </strong>
                     {key === "project_tests" && <p>{value.message}</p>}
                     {!value.ready && (
                       <>
                         <p>
                           Launch Start Office.cmd from Windows, outside this
-                          chat’s sandbox. Ensure Codex’s Windows sandbox is configured.
+                          chat’s sandbox. Ensure Codex’s Windows sandbox is
+                          configured.
                         </p>
                         <details>
                           <summary>Technical details</summary>
@@ -891,10 +945,11 @@ export default function App() {
           <ArrowRight size={16} />
         </button>
       )}
+      {settingsPanel.value && <AgentSettingsDrawer agents={state.agents} closing={settingsPanel.closing} close={() => setAgentSettingsOpen(false)} />}
       {selected && (
         <>
           <div className="drawer-shade" onClick={() => state.select(null)} />
-          <aside className="agent-drawer">
+          <aside className={"agent-drawer" + (agentPanel.closing ? " is-closing" : "")} inert={agentPanel.closing}>
             <button
               className="close"
               aria-label="Close agent details"
@@ -909,6 +964,7 @@ export default function App() {
             <span className={"status-pill " + selected.status}>
               {state.online ? statusLabel(selected.status) : "Offline"}
             </span>
+            <AgentModelSettings key={selected.id} agent={selected} />
             <h3>Current assignment</h3>
             {selected.task ? (
               <>
@@ -934,6 +990,10 @@ export default function App() {
                     · attempt {r.attempt}
                   </strong>
                   <span>{statusLabel(r.status)}</span>
+                  <span>
+                    {r.model_settings?.model ?? "Runtime default"} · reasoning:{" "}
+                    {r.model_settings?.reasoning ?? "Model default"}
+                  </span>
                   {r.result && <p>{r.result.summary}</p>}
                   {r.error && <p>{r.error}</p>}
                 </div>
@@ -954,6 +1014,12 @@ export default function App() {
               ))}
           </aside>
         </>
+      )}
+      {workflowProject && (
+        <WorkflowDialog
+          project={workflowProject}
+          close={() => setWorkflowProject(null)}
+        />
       )}
       {deleteProject && (
         <DeleteProjectModal
@@ -1037,28 +1103,68 @@ export default function App() {
       </NewProjectModal>
       {plannerProject && (
         <div className="modal-backdrop">
-          <section className="modal planner-follow-up" role="dialog" aria-modal="true" aria-labelledby="planner-follow-up-title">
-            <button className="close" aria-label="Close Planner conversation" onClick={() => setPlannerProject(null)}><X size={20} /></button>
+          <section
+            className="modal planner-follow-up"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="planner-follow-up-title"
+          >
+            <button
+              className="close"
+              aria-label="Close Planner conversation"
+              onClick={() => setPlannerProject(null)}
+            >
+              <X size={20} />
+            </button>
             <h2 id="planner-follow-up-title">คุยกับ Planner ต่อ</h2>
             <p>{plannerProject.name} — บอกสิ่งที่ต้องการปรับเพิ่มจากงานเดิม</p>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              if (plannerSending || !plannerMessage.trim()) return;
-              const target = plannerProject;
-              setPlannerSending(true);
-              void action(async () => {
-                await api("/projects/" + target.id + "/plan", { message: plannerMessage.trim() });
-                setProjectId(target.id);
-                setPlannerProject(null);
-                setPlannerMessage("");
-              }).finally(() => setPlannerSending(false));
-            }}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (plannerSending || !plannerMessage.trim()) return;
+                const target = plannerProject;
+                setPlannerSending(true);
+                void action(async () => {
+                  await api("/projects/" + target.id + "/plan", {
+                    message: plannerMessage.trim(),
+                  });
+                  setProjectId(target.id);
+                  setPlannerProject(null);
+                  setPlannerMessage("");
+                }).finally(() => setPlannerSending(false));
+              }}
+            >
               <label htmlFor="planner-message">ต้องการปรับอะไรเพิ่มเติม?</label>
-              <textarea id="planner-message" name="planner-message" autoFocus required rows={8} maxLength={20000} value={plannerMessage} onChange={(e) => setPlannerMessage(e.target.value)} placeholder="เช่น เพิ่มปุ่มแก้ไขชื่องาน และเปลี่ยนสีหน้าเว็บเป็นโทนเขียว" />
+              <textarea
+                id="planner-message"
+                name="planner-message"
+                autoFocus
+                required
+                rows={8}
+                maxLength={20000}
+                value={plannerMessage}
+                onChange={(e) => setPlannerMessage(e.target.value)}
+                placeholder="เช่น เพิ่มปุ่มแก้ไขชื่องาน และเปลี่ยนสีหน้าเว็บเป็นโทนเขียว"
+              />
               <p>Planner จะดูไฟล์และแผนเดิม แล้วเสนอแผนเพิ่มให้คุณอนุมัติ</p>
               <div className="planner-dialog-actions">
-                <button className="secondary" type="button" onClick={() => setPlannerProject(null)}>ยกเลิก</button>
-                <button className="primary" type="submit" disabled={plannerSending || state.busy || !plannerMessage.trim()}>{plannerSending ? "กำลังส่ง…" : "ส่งให้ Planner"} <ArrowRight size={16} /></button>
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={() => setPlannerProject(null)}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  className="primary"
+                  type="submit"
+                  disabled={
+                    plannerSending || state.busy || !plannerMessage.trim()
+                  }
+                >
+                  {plannerSending ? "กำลังส่ง…" : "ส่งให้ Planner"}{" "}
+                  <ArrowRight size={16} />
+                </button>
               </div>
             </form>
           </section>
@@ -1152,3 +1258,4 @@ function Empty({ title, text }: { title: string; text: string }) {
     </div>
   );
 }
+

@@ -576,6 +576,18 @@
 }
 
 .app.light-shell .new-project-shortcut { background: #183d66; border-color: #315b83; color: #e4efff; box-shadow: 0 3px 10px #00000020; }
+.app.light-shell .new-project-shortcut {
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+.app.light-shell .new-project-shortcut:hover:not(:disabled) {
+  background: #204c77;
+  border-color: #388dcc;
+  color: #e4efff;
+  filter: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.light-shell .new-project-shortcut { transition: none; }
+}
 .app.light-shell .app-header { background: #0d1a2cf5; box-shadow: 0 3px 20px #00000026; }
 .app.light-shell .nav-selection-indicator { background: linear-gradient(130deg, #204c77, #153653); border-color: #388dcc; box-shadow: inset 0 -2px 0 #38bfee, 0 3px 9px #00000020; }
 .app.light-shell .app-header .top-nav-item.active { color: #e9f5ff; }

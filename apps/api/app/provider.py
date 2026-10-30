@@ -14,7 +14,7 @@ from openai_codex import AsyncCodex, CodexConfig, ApprovalMode
 
 class Provider(Protocol):
     async def generate(
-        self, instructions: str, prompt: str, schema: dict, emit: Any
+        self, instructions: str, prompt: str, schema: dict, emit: Any, *, model: str | None = None, reasoning: str | None = None
     ) -> dict: ...
 
 
@@ -84,17 +84,36 @@ class CodexProvider:
                 "auth_type": obj.get("type"),
             }
 
+    async def models(self) -> list[dict]:
+        async with self.client() as client:
+            catalog = await client.models()
+        return [
+            {
+                "model": m.model,
+                "name": m.display_name,
+                "description": m.description,
+                "is_default": m.is_default,
+                "default_reasoning": str(getattr(m.default_reasoning_effort, "value", m.default_reasoning_effort)),
+                "reasoning_efforts": [
+                    {"value": str(getattr(r.reasoning_effort, "value", r.reasoning_effort)), "description": r.description}
+                    for r in m.supported_reasoning_efforts
+                ],
+            }
+            for m in catalog.data if not m.hidden
+        ]
+
     async def generate(
-        self, instructions: str, prompt: str, schema: dict, emit: Any
+        self, instructions: str, prompt: str, schema: dict, emit: Any, *, model: str | None = None, reasoning: str | None = None
     ) -> dict:
         async with self.client() as client:
             thread = await client.thread_start(
                 approval_mode=ApprovalMode.deny_all,
                 ephemeral=True,
                 developer_instructions=instructions,
+                model=model,
             )
-            handle = await thread.turn(prompt, output_schema=schema)
-            emit("runtime.started", thread_id=thread.id, turn_id=handle.id)
+            handle = await thread.turn(prompt, output_schema=schema, effort=reasoning)
+            emit("runtime.started", thread_id=thread.id, turn_id=handle.id, requested_model=model, requested_reasoning=reasoning, message=f"Model: {model or 'Runtime default'} · reasoning: {reasoning or 'Model default'}")
             try:
                 result = await asyncio.wait_for(handle.run(), 300)
             except BaseException:

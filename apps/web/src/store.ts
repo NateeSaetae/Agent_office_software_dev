@@ -25,6 +25,7 @@ export type Agent = {
   color: string;
   status: string;
   task?: Task;
+  settings?: { model: string | null; reasoning: string | null };
 };
 export type Project = {
   id: string;
@@ -55,6 +56,7 @@ export type Approval = {
   payload: Record<string, unknown>;
 };
 export type Run = {
+  model_settings?: { model: string | null; reasoning: string | null };
   id: string;
   task_id: string;
   project_id: string;

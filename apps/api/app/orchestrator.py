@@ -7,10 +7,13 @@ import uuid
 from pathlib import Path
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
+from .model_settings import agent_settings
 from .agents import BASE, INSTRUCTIONS
 from .security import safe_path, files, run_tests, devops_config_path, qa_artifact_path
 from .store import Store, now
 from .provider import Provider
+from .workspace_agent import WorkspaceAgent
+from .project_workspace import workspace_path
 
 
 def uid() -> str:
@@ -67,16 +70,20 @@ class Orchestrator:
         self.active: dict[str, asyncio.Task] = {}
         self.waiters: dict[str, asyncio.Future] = {}
         self.pipeline: asyncio.Task | None = None
+        self.workflow_auto = False
 
-    def start_workflow(self, project_id: str) -> None:
+    def start_workflow(self, project_id: str, *, auto_approve: bool = False) -> None:
         if self.active or (self.pipeline and not self.pipeline.done()):
             raise ValueError("A run is already active")
+
+        self.workflow_auto = auto_approve
 
         async def drive():
             self.store.emit(
                 "workflow.started",
                 project_id=project_id,
-                message="Sequential workflow started",
+                message="Auto workflow started: workspace edits and local commands authorized for this run" if auto_approve else "Workflow started with per-action approvals",
+                auto_approve=auto_approve,
             )
             try:
                 for _ in range(24):
@@ -156,6 +163,10 @@ class Orchestrator:
                                 message="Retry QA after the repair task completes",
                             )
                             continue
+                        if outcome["status"] == "failed" and outcome["attempts"] < 3:
+                            outcome["status"] = "pending"
+                            self.store.save("tasks", outcome, "task.retry_scheduled", message="Retry with previous execution error; attempt limit 3")
+                            continue
                         self.store.emit(
                             "workflow.paused",
                             project_id=project_id,
@@ -169,6 +180,7 @@ class Orchestrator:
                 )
             finally:
                 self.pipeline = None
+                self.workflow_auto = False
 
         self.pipeline = asyncio.create_task(drive())
 
@@ -204,10 +216,13 @@ class Orchestrator:
         }
         if attempt > 3 and not explicit_retry:
             raise ValueError("Automatic retry limit reached (3). Retry the task manually after resolving the issue.")
+        if task.get("error"): task["last_error"] = task["error"]
         task.pop("error", None)
+        task["automation_approved"] = bool(from_pipeline and self.workflow_auto)
         task["status"] = "queued"
         task["attempts"] = attempt
         task["run_id"] = uid()
+        task["model_settings"] = agent_settings(self.store, task["agent_id"])
         self.store.save("tasks", task, "task.queued")
         self.store.save(
             "runs",
@@ -219,12 +234,17 @@ class Orchestrator:
                 "status": "queued",
                 "started_at": now(),
                 "attempt": task["attempts"],
+                "model_settings": task.get("model_settings"),
             },
             "run.created",
         )
         self.active[task["id"]] = asyncio.create_task(self._run(task))
 
     async def approval(self, task: dict, kind: str, payload: dict) -> bool:
+        if task.get("automation_approved") and kind in {"changes", "commands", "tests"}:
+            audit = {"id": uid(), "project_id": task["project_id"], "task_id": task["id"], "agent_id": task["agent_id"], "kind": kind, "payload": payload, "status": "approved", "created_at": now(), "decided_at": now(), "authorization": "user-started auto workflow"}
+            self.store.save("approvals", audit, "approval.auto_authorized", message="Authorized by auto workflow: " + kind)
+            return True
         a = {
             "id": uid(),
             "project_id": task["project_id"],
@@ -246,7 +266,10 @@ class Orchestrator:
             message=f"Review {kind} before continuing",
         )
         try:
-            return bool(await asyncio.wait_for(future, 900))
+            approved = bool(await asyncio.wait_for(future, 900))
+            task["status"] = "running"
+            self.store.save("tasks", task, "agent.working", message="Approval resolved; continuing task")
+            return approved
         finally:
             self.waiters.pop(a["id"], None)
             current = self.store.get("approvals", a["id"])
@@ -286,7 +309,7 @@ class Orchestrator:
                 task["status"] = "running"
                 self.store.save("tasks", task, "agent.thinking", message=task["title"])
                 project = self.store.get("projects", task["project_id"])
-                root = Path(project["workspace"]).resolve()
+                root = workspace_path(project, self.store.all("projects"), Path(__file__).resolve().parents[3], Path(self.store.engine.url.database).resolve().parent)
 
                 def emit(event: str, **data: object) -> None:
                     self.store.emit(
@@ -301,10 +324,12 @@ class Orchestrator:
                 names = files(root)
                 snapshot: dict[str, str] = {}
                 total = 0
+                terms=set((task["title"]+" "+task["description"]).lower().split())
+                names.sort(key=lambda name: (0 if Path(name).name in {"package.json","pyproject.toml","requirements.txt","tsconfig.json"} else 1, -sum(term in name.lower() for term in terms if len(term)>2), len(name)))
                 for name in names:
                     p = safe_path(root, name)
                     content = p.read_text(encoding="utf-8", errors="replace")
-                    if total + len(content) > 100_000:
+                    if total + len(content) > 24000:
                         continue
                     total += len(content)
                     snapshot[name] = content
@@ -349,7 +374,7 @@ class Orchestrator:
                 instructions = (
                     BASE.replace(
                         "Use ONLY the supplied office_* tools for workspace operations.",
-                        "You receive a bounded source snapshot. Propose full replacement file contents in changes; the application applies approved changes. Do not invoke tools.",
+                        "You receive a starter snapshot and application-managed tools for further workspace inspection, approved edits and local commands.",
                     )
                     + "\n"
                     + INSTRUCTIONS[task["agent_id"]]
@@ -361,17 +386,9 @@ class Orchestrator:
                         "Propose only the incremental changes needed; do not recreate completed work or restart the original project. "
                         "The new plan will be appended to existing tasks after user approval."
                     )
-                raw = await asyncio.wait_for(
-                    self.provider.generate(
-                        instructions,
-                        json.dumps(context, ensure_ascii=False),
-                        Plan.model_json_schema()
-                        if planner
-                        else Result.model_json_schema(),
-                        emit,
-                    ),
-                    360,
-                )
+                model_options = {k: v for k, v in task.get("model_settings", {}).items() if v is not None}
+                engine = WorkspaceAgent(root, task["agent_id"], self.provider, lambda kind, payload: self.approval(task, kind, payload), emit, model_options, snapshot)
+                raw = await asyncio.wait_for(engine.run(instructions, context, Plan if planner else Result), 1200)
                 if planner:
                     plan = Plan.model_validate(raw)
                     validate_plan(plan)
@@ -481,31 +498,25 @@ class Orchestrator:
                         "agent.working",
                         message="Applying approved result",
                     )
-                    if result.test_suite != "none":
+                    evidence = [r for r in engine.results if r["revision"] == engine.revision]
+                    task["result"]["verification"] = evidence
+                    test_results = [r for r in evidence if r["command"] == "test"]
+                    if result.test_suite != "none" and not test_results:
+                        if not await self.approval(task, "commands", {"command": "test", "cwd": str(root), "execution": "local host process; no Docker"}):
+                            raise ValueError("Local tests rejected")
                         outcome = await run_tests(root, result.test_suite)
                         task["result"]["test_result"] = outcome
-                        if outcome.get("executed") is False:
-                            result.status = "blocked"
-                            task["result"]["status"] = "blocked"
-                            task["result"]["summary"] = "Manual test verification required; Docker and automated project tests are disabled"
-                            task["result"]["findings"].append(outcome["output"])
-                            task["status"] = "blocked"
-                            emit("tests.manual_required", tool="tests.manual", **outcome)
-                            self.store.save("tasks", task, "task.blocked", message=task["result"]["summary"])
-                            return
-                        emit("tool.completed", tool="sandbox.test", **outcome)
-                        if outcome["exit_code"] != 0:
-                            raise ValueError(
-                                "Sandbox tests failed; see execution output"
-                            )
-                    elif task["agent_id"] == "qa":
-                        result.summary = "Manual QA verification required; no project tests were executed"
-                        task["result"]["summary"] = result.summary
+                        emit("tool.completed", tool="local.command", **outcome)
+                        test_results = [outcome]
+                    if test_results:
+                        task["result"]["test_result"] = test_results[-1]
+                        if test_results[-1]["exit_code"] != 0:
+                            raise ValueError("Local tests failed; see execution output")
+                    if task["agent_id"] == "qa" and not any(r.get("executed") and r["exit_code"] == 0 and r.get("test_count",0)>0 for r in test_results):
                         result.status = "blocked"
-                        task["result"]["status"] = "blocked"
-                        task["result"]["findings"].append(
-                            "QA execution requires manual verification. Docker and automated project tests are disabled; no tests were run."
-                        )
+                        result.summary = "QA needs executed passing tests; see local command logs"
+                        task["result"].update(status="blocked", summary=result.summary)
+                        task["result"]["findings"].append("No executed passing tests were detected")
                     if result.status == "blocked":
                         task["status"] = "blocked"
                         self.store.save(
@@ -536,6 +547,7 @@ class Orchestrator:
                     "status": task["status"],
                     "completed_at": now(),
                     "attempt": task["attempts"],
+                    "model_settings": task.get("model_settings"),
                     "result": task.get("result"),
                     "error": task.get("error"),
                 },

@@ -74,6 +74,14 @@ class Store:
                 text("INSERT INTO events(body) VALUES(:b)"), {"b": json.dumps(body)}
             )
 
+    def save_agent_preferences(self, settings: list[dict]) -> None:
+        """Commit validated bulk preferences and their audit event atomically."""
+        with self.engine.begin() as c:
+            for setting in settings:
+                c.execute(text("INSERT INTO records(kind,id,body) VALUES('agent_settings',:id,:b) ON CONFLICT(kind,id) DO UPDATE SET body=:b"),
+                          {"id": setting["agent_id"], "b": json.dumps({"id": setting["agent_id"], **setting})})
+            c.execute(text("INSERT INTO events(body) VALUES(:b)"), {"b": json.dumps({"type": "agent.settings_updated", "at": now(), "message": "Agent model preferences updated for subsequent runs", "agent_ids": [s["agent_id"] for s in settings]})})
+
     def emit(self, event: str, **payload: Any) -> None:
         with self.engine.begin() as c:
             c.execute(

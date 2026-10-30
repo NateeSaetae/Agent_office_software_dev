@@ -1,0 +1,49 @@
+.app .workflow-dialog {
+  background: #fff;
+  color: #23446b;
+  border: 1px solid #d6e5f7;
+  border-radius: 28px;
+  width: 560px;
+  padding: 32px;
+}
+.app .workflow-dialog h2 {
+  color: #153257;
+  font-size: 28px;
+}
+.workflow-choice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: #eef6ff;
+  border: 1px solid #b9d9fa;
+  padding: 18px;
+  border-radius: 18px;
+  margin: 24px 0 16px;
+}
+.workflow-choice input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: #227bed;
+}
+.workflow-choice strong {
+  display: block;
+  font-size: 16px;
+  color: #205a96;
+}
+.workflow-choice small {
+  display: block;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-top: 5px;
+  color: #567695;
+}
+.workflow-note {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #607e9e;
+  overflow-wrap: anywhere;
+}
+.workflow-note code {
+  font-size: 12px;
+}

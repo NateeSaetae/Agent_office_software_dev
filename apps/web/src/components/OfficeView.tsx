@@ -1,3 +1,4 @@
+﻿import Dropdown from "./Dropdown";
 import { lazy, Suspense, useState } from "react";
 import {
   Activity,
@@ -249,17 +250,17 @@ export default function OfficeView({
         </div>
         {project ? (
           <>
-            <select
+            <Dropdown
               aria-label="Active project"
               value={project.id}
-              onChange={(e) => setProjectId(e.target.value)}
+              onValueChange={setProjectId}
             >
               {state.projects.map((p) => (
                 <option value={p.id} key={p.id}>
                   {p.name}
                 </option>
               ))}
-            </select>
+            </Dropdown>
             <button
               onClick={() => onPage("Tasks")}
               className="hud-project-link"
@@ -280,3 +281,4 @@ export default function OfficeView({
     </section>
   );
 }
+

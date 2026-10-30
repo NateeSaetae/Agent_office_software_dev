@@ -1,0 +1,389 @@
+﻿/* Use the same white surfaces, blue ink and capsule controls as the workspace. */
+.app.light-shell .bulk-settings-drawer {
+  --settings-ink: #142b50;
+  --settings-muted: #617792;
+  --settings-line: #e2eaf5;
+  position: fixed;
+  z-index: 160;
+  inset: 12px 12px 12px auto;
+  width: min(760px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  color: var(--settings-ink);
+  border: 1px solid var(--settings-line);
+  border-radius: 24px;
+  box-shadow: -12px 0 64px #17345424;
+  outline: none;
+  font:
+    14px/1.6 "DM Sans",
+    "Leelawadee UI",
+    Tahoma,
+    sans-serif;
+}
+.app.light-shell .bulk-settings-shade {
+  z-index: 159;
+  background: #15335c26;
+  backdrop-filter: blur(4px);
+}
+.bulk-settings-heading {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 26px 30px 22px;
+  border-bottom: 1px solid var(--settings-line);
+}
+.bulk-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #6280a6;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.25px;
+}
+.bulk-settings-heading h2 {
+  margin: 7px 0 0;
+  color: var(--settings-ink);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.7px;
+}
+.bulk-settings-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 30px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: #c2d3e9 transparent;
+}
+.bulk-intro {
+  margin: 22px 0 26px;
+  color: var(--settings-muted);
+  font-size: 13px;
+  line-height: 1.7;
+  max-width: 510px;
+}
+.bulk-settings-section {
+  padding: 0 0 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--settings-line);
+}
+.bulk-settings-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--settings-ink);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.bulk-settings-section h3 > svg {
+  color: #2679e7;
+}
+.bulk-settings-section h3 > span {
+  margin-left: auto;
+  background: #f2f6fc;
+  border: 1px solid #e8eef7;
+  border-radius: 999px;
+  padding: 3px 9px;
+  color: #7288a3;
+  font-size: 11px;
+  font-weight: 500;
+}
+.bulk-settings-section > p {
+  margin: 8px 0 20px;
+  color: var(--settings-muted);
+  font-size: 12px;
+}
+.bulk-column-labels,
+.bulk-assignment {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) 30px;
+  column-gap: 12px;
+}
+.bulk-column-labels {
+  margin-bottom: 8px;
+  color: #627c9c;
+  font-size: 11px;
+  font-weight: 600;
+}
+.bulk-assignment {
+  align-items: start;
+  row-gap: 8px;
+  margin-bottom: 12px;
+}
+.bulk-value {
+  min-width: 0;
+}
+.app.light-shell .bulk-settings-drawer .modern-dropdown-trigger {
+  min-height: 46px;
+  padding: 11px 12px;
+  gap: 8px;
+  font-size: 12px;
+  border-color: #dce5f1;
+  border-radius: 12px;
+  background: #f8fafd;
+  box-shadow: none;
+}
+.app.light-shell
+  .bulk-settings-drawer
+  .modern-dropdown-trigger:hover:not(:disabled) {
+  background: #f2f7ff;
+  border-color: #adc8ed;
+}
+.app.light-shell
+  .bulk-settings-drawer
+  .modern-dropdown-trigger[aria-expanded="true"] {
+  background: #fff;
+  border-color: #839cff;
+}
+.bulk-agent-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 7px;
+  background: #fff;
+  border: 1px solid #dce5f1;
+  border-radius: 12px;
+  transition: border-color 0.16s ease;
+}
+.bulk-agent-field:focus-within {
+  border-color: #839cff;
+}
+.bulk-agent-tags {
+  display: contents;
+}
+.bulk-agent-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 3px 6px 3px 8px;
+  border: 1px solid #dee8f7;
+  border-radius: 7px;
+  color: #3d5b82;
+  background: #eef4fd;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.bulk-agent-tag::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  border-radius: 50%;
+  background: var(--tag-color);
+}
+.app.light-shell .bulk-agent-tag button {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  padding: 0;
+  color: #859bbb;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+}
+.app.light-shell .bulk-agent-tag button:hover:not(:disabled) {
+  background: #dce8fa;
+  color: #2c64ba;
+  filter: none;
+}
+.app.light-shell .bulk-agent-field .modern-dropdown-trigger {
+  flex: 1 0 26px;
+  width: auto;
+  min-width: 26px;
+  min-height: 28px;
+  max-width: 100%;
+  padding: 3px 4px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: #7891b1;
+  box-shadow: none;
+}
+.app.light-shell
+  .bulk-agent-field:has(.bulk-agent-tag)
+  .modern-dropdown-trigger {
+  flex: 0 0 26px;
+  margin-left: auto;
+}
+.app.light-shell
+  .bulk-agent-field:has(.bulk-agent-tag)
+  .modern-dropdown-trigger
+  > span {
+  display: none;
+}
+.app.light-shell .bulk-agent-field .modern-dropdown-trigger .dropdown-leading {
+  display: none;
+}
+.app.light-shell
+  .bulk-agent-field
+  .modern-dropdown-trigger:hover:not(:disabled) {
+  background: #f2f6fc;
+}
+.app.light-shell .bulk-icon-button {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  padding: 0;
+  color: #7a90ae;
+  background: #f5f8fd;
+  border: 1px solid #e4ebf5;
+  border-radius: 10px;
+}
+.app.light-shell .bulk-delete {
+  width: 30px;
+  height: 34px;
+  margin-top: 6px;
+  background: transparent;
+  border-color: transparent;
+  color: #9bacc3;
+}
+.app.light-shell :is(.bulk-add, .bulk-cancel, .bulk-save) {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #d9e4f2;
+  border-radius: 999px;
+  min-height: 40px;
+  padding: 9px 16px;
+  background: #fff;
+  color: #3c5c84;
+  font-size: 12px;
+  font-weight: 600;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease;
+}
+.app.light-shell .bulk-add {
+  min-height: 34px;
+  margin-top: 2px;
+  padding: 6px 10px;
+  background: #f4f8ff;
+  border-color: transparent;
+  color: #2168cd;
+}
+.app.light-shell .bulk-save {
+  min-height: 42px;
+  padding: 10px 18px;
+  background: #1766ed;
+  border-color: #1766ed;
+  color: #fff;
+  box-shadow: 0 4px 12px #1766ed1c;
+}
+.app.light-shell
+  :is(.bulk-add, .bulk-cancel, .bulk-icon-button):hover:not(:disabled) {
+  background: #edf4ff;
+  border-color: #c7dbf6;
+  color: #2168cd;
+  filter: none;
+}
+.app.light-shell .bulk-delete:hover:not(:disabled) {
+  color: #c63c5a;
+  background: #fff1f3;
+  border-color: #ffd9e0;
+}
+.app.light-shell .bulk-save:hover:not(:disabled) {
+  background: #1157d8;
+  filter: none;
+}
+.app.light-shell .bulk-settings-drawer button:focus-visible {
+  outline: none;
+  border-color: #839cff;
+  box-shadow: 0 0 0 2px #839cff1c;
+}
+.app.light-shell .bulk-settings-drawer button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.bulk-row-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #b83b55;
+  font-size: 12px;
+}
+.bulk-footnote {
+  margin: 0;
+  color: #7a8fa9;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.bulk-settings-drawer .model-error {
+  color: #b83b55;
+}
+.bulk-settings-drawer .model-saved {
+  color: #167f69;
+}
+.bulk-settings-footer {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 30px;
+  border-top: 1px solid var(--settings-line);
+  background: #fafcff;
+}
+@media (max-width: 540px) {
+  .app.light-shell .bulk-settings-drawer {
+    inset: 6px 6px 6px auto;
+    width: calc(100vw - 12px);
+    border-radius: 20px;
+  }
+  .bulk-settings-heading {
+    padding: 20px 18px 18px;
+  }
+  .bulk-settings-heading h2 {
+    font-size: 24px;
+  }
+  .bulk-settings-body {
+    padding: 0 18px 20px;
+  }
+  .bulk-column-labels,
+  .bulk-assignment {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) 26px;
+    column-gap: 7px;
+  }
+  .app.light-shell .bulk-settings-drawer .modern-dropdown-trigger {
+    padding: 10px 8px;
+    gap: 5px;
+  }
+  .app.light-shell .bulk-value .dropdown-leading {
+    display: none;
+  }
+  .app.light-shell .bulk-delete {
+    width: 26px;
+  }
+  .bulk-settings-footer {
+    padding: 14px 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.light-shell .bulk-settings-drawer {
+    animation: none;
+  }
+  .bulk-agent-field,
+  .app.light-shell :is(.bulk-add, .bulk-cancel, .bulk-save) {
+    transition: none;
+  }
+}

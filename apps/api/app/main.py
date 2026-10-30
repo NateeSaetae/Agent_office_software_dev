@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field
 from .security import test_policy
+from .model_settings import agent_settings, validate_selection
 from .agents import AGENTS
 from .store import Store, now
 from .provider import CodexProvider
@@ -105,7 +106,7 @@ def state():
             None,
         )
         agents.append(
-            {**a, "status": active["status"] if active else "idle", "task": active}
+            {**a, "status": active["status"] if active else "idle", "task": active, "settings": agent_settings(store, a["id"])}
         )
     return {
         "projects": store.all("projects"),
@@ -116,6 +117,62 @@ def state():
         "events": store.recent(),
         "busy": bool(orchestrator.active or orchestrator.pipeline),
     }
+
+
+class AgentModelSettings(BaseModel):
+    model: str | None = Field(default=None, max_length=200)
+    reasoning: str | None = Field(default=None, max_length=30)
+
+
+@app.get("/api/models")
+async def models():
+    try:
+        return {"models": await asyncio.wait_for(provider.models(), 30)}
+    except Exception as e:
+        raise HTTPException(503, "Could not load Codex models. Check sign-in and local runtime. " + str(e)[:500])
+
+
+@app.post("/api/agents/{agent_id}/settings")
+async def save_agent_settings(agent_id: str, body: AgentModelSettings):
+    if agent_id not in {a["id"] for a in AGENTS}:
+        raise HTTPException(404, "Agent not found")
+    try:
+        catalog = await asyncio.wait_for(provider.models(), 30) if body.model is not None else []
+    except Exception as e:
+        raise HTTPException(503, "Could not validate model availability. " + str(e)[:500])
+    try:
+        settings = validate_selection(catalog, body.model, body.reasoning)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    store.save("agent_settings", {"id": agent_id, "agent_id": agent_id, **settings}, "agent.settings_updated", message="Agent model preferences updated for subsequent runs")
+    return settings
+
+
+class AgentPreference(AgentModelSettings):
+    agent_id: str
+
+
+class BulkAgentPreferences(BaseModel):
+    settings: list[AgentPreference] = Field(min_length=1, max_length=len(AGENTS))
+
+
+@app.post("/api/agent-settings/bulk")
+async def save_bulk_agent_settings(body: BulkAgentPreferences):
+    ids = [s.agent_id for s in body.settings]
+    if len(ids) != len(set(ids)) or not set(ids) <= {a["id"] for a in AGENTS}:
+        raise HTTPException(400, "Unknown or duplicate agent")
+    try:
+        catalog = await asyncio.wait_for(provider.models(), 30) if any(s.model is not None for s in body.settings) else []
+    except Exception as e:
+        raise HTTPException(503, "Could not validate model availability. " + str(e)[:500])
+    validated = []
+    for selection in body.settings:
+        try:
+            validated.append({"agent_id": selection.agent_id, **validate_selection(catalog, selection.model, selection.reasoning)})
+        except ValueError as e:
+            raise HTTPException(400, selection.agent_id + ": " + str(e))
+    store.save_agent_preferences(validated)
+    return {"settings": validated}
 
 
 class NewProject(BaseModel):
@@ -253,13 +310,17 @@ async def plan(id: str, body: PlanRequest | None = None):
         raise HTTPException(409, str(e))
 
 
+class WorkflowOptions(BaseModel):
+    auto_approve: bool = False
+
+
 @app.post("/api/projects/{id}/workflow")
-async def workflow(id: str):
+async def workflow(id: str, body: WorkflowOptions):
     try:
         store.get("projects", id)
         await require_account()
         store.get("projects", id)
-        orchestrator.start_workflow(id)
+        orchestrator.start_workflow(id, auto_approve=body.auto_approve)
         return {"ok": True}
     except KeyError:
         raise HTTPException(404, "Project not found")

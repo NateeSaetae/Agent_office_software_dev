@@ -1,0 +1,22 @@
+﻿/* Slide the complete panel from beyond the viewport; opacity stays unchanged. */
+.app.light-shell :is(.agent-drawer, .bulk-settings-drawer) {
+  animation: drawer-slide-in 360ms cubic-bezier(.22, 1, .36, 1) both;
+}
+.app.light-shell :is(.agent-drawer, .bulk-settings-drawer).is-closing {
+  animation: drawer-slide-out 280ms cubic-bezier(.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+@keyframes drawer-slide-in {
+  from { transform: translateX(calc(100% + 80px)); }
+  to { transform: translateX(0); }
+}
+@keyframes drawer-slide-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(100% + 80px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.light-shell :is(.agent-drawer, .bulk-settings-drawer),
+  .app.light-shell :is(.agent-drawer, .bulk-settings-drawer).is-closing {
+    animation: none;
+  }
+}

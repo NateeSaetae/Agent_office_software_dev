@@ -37,6 +37,7 @@ DENIED = {
     ".venv",
     "__pycache__",
     ".data",
+    ".office-runtime",
     "dist",
     "work",
     ".kube",
@@ -137,22 +138,10 @@ def devops_config_path(relative: str) -> bool:
 
 
 def test_policy() -> dict:
-    return {
-        "ready": True,
-        "mode": "manual",
-        "message": "Docker is disabled. Run project build and test commands manually in its workspace. Automated project test execution is unavailable; no host shell fallback is used.",
-    }
+    return {"ready": True, "mode": "local", "message": "Local install/typecheck/build/test commands are available with approval or an explicitly authorized auto workflow. Docker is disabled. Project scripts run on this PC, not in an OS sandbox."}
 
 
-async def run_tests(root: Path, suite: str, timeout: int = 120) -> dict:
-    """No container or arbitrary host process execution in manual mode."""
-    if suite not in {"python", "node"}:
-        raise ValueError("Unknown test suite")
-    return {
-        "executed": False,
-        "mode": "manual",
-        "exit_code": None,
-        "test_count": 0,
-        "suite": suite,
-        "output": test_policy()["message"],
-    }
+async def run_tests(root: Path, suite: str, timeout: int = 180) -> dict:
+    if suite not in {"python", "node"}: raise ValueError("Unknown test suite")
+    from .local_runner import run_local
+    return await run_local(root, "test", timeout)

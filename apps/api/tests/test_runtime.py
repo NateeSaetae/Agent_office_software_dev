@@ -78,8 +78,8 @@ class FakeProvider:
 
 
 def setup(tmp_path, result, agent="frontend"):
-    root = tmp_path / "source"
-    root.mkdir()
+    root = tmp_path / "workspaces" / "p"
+    root.mkdir(parents=True)
     s = Store(tmp_path / "db.sqlite")
     s.save(
         "projects",
@@ -206,7 +206,7 @@ def test_qa_document_requires_approval_and_remains_unverified(tmp_path, path):
         await o.active["t"]
         assert (root / path).read_text() == "# QA\nBuild: not tested\n"
         assert s.get("tasks", "t")["status"] == "blocked"
-        assert "Manual QA verification" in s.get("tasks", "t")["result"]["summary"]
+        assert "QA needs executed passing tests" in s.get("tasks", "t")["result"]["summary"]
     asyncio.run(scenario())
 
 
@@ -323,6 +323,7 @@ def test_qa_feedback_creates_bounded_repair(tmp_path, monkeypatch):
         nonlocal calls
         calls += 1
         return {
+            "executed": True,
             "exit_code": 1 if calls == 1 else 0,
             "test_count": 1,
             "output": "verified fixture failure" if calls == 1 else "passed",
@@ -357,32 +358,16 @@ def test_qa_feedback_creates_bounded_repair(tmp_path, monkeypatch):
 
     asyncio.run(scenario())
 
-def test_manual_test_mode_never_spawns_process(tmp_path, monkeypatch):
-    from app.security import run_tests, test_policy
-
-    async def forbidden(*args, **kwargs):
-        raise AssertionError("Manual mode must not spawn Docker or a host shell")
-
-    monkeypatch.setattr(asyncio, "create_subprocess_exec", forbidden)
-    monkeypatch.setattr(asyncio, "create_subprocess_shell", forbidden)
-    for suite in ("python", "node"):
-        outcome = asyncio.run(run_tests(tmp_path, suite))
-        assert outcome["executed"] is False
-        assert outcome["exit_code"] is None
-        assert outcome["test_count"] == 0
-    assert test_policy()["mode"] == "manual"
-
-
-def test_old_test_request_becomes_manual_blocker(tmp_path):
+def test_legacy_test_request_requires_local_approval(tmp_path):
     async def scenario():
         root, s, o, t = setup(tmp_path, {**result(), "test_suite": "node"})
         o.queue(t)
+        decision = await wait_approval(o)
+        assert s.get("approvals", decision)["kind"] == "commands"
+        assert not any(e.get("executed") for e in s.recent())
+        o.decide(decision, False)
         await o.active["t"]
-        saved = s.get("tasks", "t")
-        assert saved["status"] == "blocked"
-        assert saved["result"]["test_result"]["executed"] is False
-        assert not o.waiters
-        assert any(e["type"] == "tests.manual_required" for e in s.recent())
+        assert s.get("tasks", "t")["status"] == "failed"
     asyncio.run(scenario())
 
 

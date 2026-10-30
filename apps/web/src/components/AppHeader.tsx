@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+﻿import { useLayoutEffect, useRef, useState } from "react";
 import {
   Activity,
   Bell,
@@ -107,14 +107,16 @@ export default function AppHeader({
         ))}
       </nav>
       <div className="header-right">
-        <button
-          className="new-project-shortcut"
-          onClick={onNewProject}
-          title="New project"
-        >
-          <Plus size={16} />
-          <span>New project</span>
-        </button>
+        {
+          <button
+            className="new-project-shortcut"
+            onClick={onNewProject}
+            title="New project"
+          >
+            <Plus size={16} />
+            <span>New project</span>
+          </button>
+        }
         <div className="office-clock">
           <Sun size={22} />
           <span>

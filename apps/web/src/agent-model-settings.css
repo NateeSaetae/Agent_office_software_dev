@@ -1,0 +1,132 @@
+.agent-model-settings {
+  margin-top: 24px;
+  padding: 18px;
+  background: #102034;
+  border: 1px solid #304a68;
+  border-radius: 18px;
+}
+.agent-model-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #69caff;
+}
+.app.light-shell .agent-model-title h3 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #dcecff;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+.app.light-shell .agent-model-settings .model-refresh {
+  appearance: none;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  margin-left: auto;
+  color: #a9c7e7;
+  padding: 0;
+  border: 1px solid #355474;
+  border-radius: 10px;
+  background: #192f47;
+  display: grid;
+  place-items: center;
+}
+.agent-model-settings label {
+  display: block;
+  color: #bed4ed;
+  font-size: 13px;
+  margin: 16px 0 8px;
+}
+.agent-model-settings select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  background: #1b3049;
+  color: #e0efff;
+  border: 1px solid #3a5777;
+  border-radius: 999px;
+  padding: 11px 14px;
+  font: inherit;
+  font-size: 14px;
+  color-scheme: dark;
+}
+.agent-model-settings select:focus-visible {
+  outline: 1px solid #51b9ff;
+  outline-offset: 2px;
+}
+.agent-model-settings select:disabled {
+  opacity: 0.55;
+}
+.agent-model-settings .model-help {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #8eaccb;
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.model-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+.model-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #216ec6;
+  color: white;
+  border: 1px solid #4397e8;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 12px;
+}
+.app.light-shell .agent-model-settings .model-reset {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  color: #bdd6ef;
+  background: #192f47;
+  border: 1px solid #355474;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.app.light-shell .agent-model-settings :is(.model-refresh, .model-reset):hover:not(:disabled) {
+  background: #24425e;
+  border-color: #5683aa;
+  color: #edf7ff;
+  filter: none;
+}
+.app.light-shell .agent-model-settings :is(.model-refresh, .model-reset):focus-visible {
+  outline: none;
+  border-color: #83b9f2;
+  box-shadow: 0 0 0 2px #83b9f226;
+}
+.app.light-shell .agent-model-settings :is(.model-refresh, .model-reset):disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.model-actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.model-error {
+  color: #ffb5b5;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.model-saved {
+  color: #65dfc5;
+  font-size: 12px;
+  line-height: 1.6;
+}

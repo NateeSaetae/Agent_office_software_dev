@@ -1,0 +1,131 @@
+﻿/* Shared select surface; focus stays on the input border instead of an outer ring. */
+.app.light-shell button.modern-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 11px 14px;
+  border: 1px solid #d9e2ef;
+  border-radius: 14px;
+  background: #fff;
+  color: #375476;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 2px 4px #17345405;
+  transform: none;
+  filter: none;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease;
+}
+.app.light-shell .board-filter > button.modern-dropdown-trigger {
+  width: 280px;
+  max-width: 100%;
+  flex: 0 1 280px;
+  min-height: 44px;
+}
+@media (max-width: 760px) {
+  .app.light-shell .board-filter > button.modern-dropdown-trigger {
+    width: auto;
+    flex: 1 1 180px;
+  }
+  .app.light-shell .board-filter .search-field {
+    flex: 1 1 180px;
+    width: auto;
+    max-width: none;
+  }
+}
+.app.light-shell button.modern-dropdown-trigger:hover:not(:disabled) {
+  border-color: #9aafe2;
+  background: #fafbff;
+  filter: none;
+}
+.app.light-shell button.modern-dropdown-trigger:focus,
+.app.light-shell button.modern-dropdown-trigger:focus-visible,
+.app.light-shell button.modern-dropdown-trigger[aria-expanded="true"] {
+  outline: none;
+  outline-offset: 0;
+  border-color: #839cff;
+  box-shadow: none;
+}
+.app.light-shell button.modern-dropdown-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.modern-dropdown-trigger > span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dropdown-leading {
+  color: #7a8eae;
+}
+.dropdown-chevron {
+  color: #7386a5;
+  transition: transform 0.16s ease;
+}
+.dropdown-chevron.is-open {
+  transform: rotate(180deg);
+}
+.modern-dropdown-menu {
+  position: fixed;
+  z-index: 10000;
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: 7px;
+  background: #fff;
+  color: #536887;
+  border: 1px solid #e2e8f2;
+  border-radius: 18px;
+  box-shadow:
+    0 12px 36px #183a6026,
+    0 2px 8px #183a600a;
+  font:
+    14px/1.45 "DM Sans",
+    "Leelawadee UI",
+    Tahoma,
+    sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: #d2dcee transparent;
+  overscroll-behavior: contain;
+}
+.modern-dropdown-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  border-radius: 11px;
+  cursor: pointer;
+}
+.modern-dropdown-option > span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.modern-dropdown-option > svg {
+  flex-shrink: 0;
+  color: #7b90b0;
+}
+.modern-dropdown-option.is-active {
+  background: #f4f6fb;
+}
+.modern-dropdown-option[aria-selected="true"] {
+  background: #eff3f9;
+  color: #193b80;
+  font-weight: 600;
+}
+.modern-dropdown-option > .dropdown-check {
+  color: #526aef;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.light-shell button.modern-dropdown-trigger,
+  .dropdown-chevron {
+    transition: none;
+  }
+}

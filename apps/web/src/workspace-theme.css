@@ -99,6 +99,21 @@
   background: #1157d8;
   box-shadow: 0 6px 20px #1762e83b;
 }
+/* Keep the gradient in place: switching it to a solid background on hover
+   cannot interpolate and causes a visible flash. */
+.workspace-mode .primary.new-project-button {
+  transition: filter 0.18s ease, box-shadow 0.18s ease;
+}
+.workspace-mode .primary.new-project-button:hover:not(:disabled) {
+  background: linear-gradient(115deg, #1460ee, #218af4);
+  color: #fff;
+  filter: brightness(0.94);
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-mode .primary.new-project-button {
+    transition: none;
+  }
+}
 .workspace-mode .secondary {
   background: #fff;
   color: #3c5c84;
